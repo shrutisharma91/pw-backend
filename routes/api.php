@@ -6,6 +6,9 @@ use App\Http\Controllers\Auth\MFAController;
 use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\NotificationController;
+use App\Http\Controllers\Admin\MerchantController;
+use App\Http\Controllers\Admin\VerificationLogController;
+use App\Http\Controllers\Admin\MerchantAgreementController;
 
 /*
 |--------------------------------------------------------------------------
@@ -77,6 +80,18 @@ Route::prefix('v1')->group(function () {
             Route::put('/{id}/snooze', [NotificationController::class, 'snooze']);   // Snooze
             Route::put('/{id}/archive', [NotificationController::class, 'archive']); // Archive
             Route::delete('/{id}', [NotificationController::class, 'destroy']);      // Delete
+        });
+
+        // ----- Phase 4: Merchant Lifecycle -----
+        Route::prefix('merchants')->group(function () {
+            Route::get('/', [MerchantController::class, 'index']);               // Screen 14: Merchant Directory
+            Route::get('/{id}', [MerchantController::class, 'show']);            // Screen 16: Merchant 360 Profile
+            Route::post('/{id}/approve', [MerchantController::class, 'approve']);// Screen 15: Approve
+            Route::post('/{id}/reject', [MerchantController::class, 'reject']);  // Screen 15: Reject
+            Route::post('/{id}/re-kyc', [MerchantController::class, 'reKyc']);   // Screen 19: Re-KYC
+            Route::post('/{id}/suspend', [MerchantController::class, 'suspend']);// Screen 19: Suspend
+            Route::get('/{id}/verification-logs', [VerificationLogController::class, 'index']); // Screen 18
+            Route::post('/{id}/agreement', [MerchantAgreementController::class, 'generate']); // Screen 17
         });
     });
 });
