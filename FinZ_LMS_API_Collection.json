@@ -1,0 +1,534 @@
+{
+  "info": {
+    "name": "FinZ LMS - Super Admin API",
+    "description": "Complete API collection for FinZ LMS Super Admin Panel (Phase 1)",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1️⃣ PUBLIC - Authentication",
+      "item": [
+        {
+          "name": "Login (Get Token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"password\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            },
+            "description": "Login with email and password. Returns token and user info. Copy the token and save it to {{token}} variable."
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/forgot-password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "forgot-password"]
+            },
+            "description": "Send password reset link to email"
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"token\": \"reset_token_from_email\",\n  \"password\": \"new_password123\",\n  \"password_confirmation\": \"new_password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/reset-password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "reset-password"]
+            },
+            "description": "Reset password using token from email"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2️⃣ MFA - Token Required",
+      "item": [
+        {
+          "name": "Verify MFA (Get OTP)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/mfa/verify",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "mfa", "verify"]
+            },
+            "description": "Verify MFA with OTP. Returns verified token. Update {{token}} with new token from response."
+          },
+          "response": []
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/mfa/resend",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "mfa", "resend"]
+            },
+            "description": "Resend OTP to user"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "refresh"]
+            },
+            "description": "Refresh token before it expires. Update {{token}} with new token."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "logout"]
+            },
+            "description": "Logout user and invalidate token"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3️⃣ PROTECTED - Profile (Token + MFA Required)",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "profile"]
+            },
+            "description": "Get current user profile information"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"mobile\": \"+1234567890\",\n  \"photo\": \"base64_image_or_url\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/profile",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "profile"]
+            },
+            "description": "Update user name, mobile, and profile photo"
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"password\",\n  \"new_password\": \"new_password123\",\n  \"new_password_confirmation\": \"new_password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/profile/change-password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "profile", "change-password"]
+            },
+            "description": "Change user password"
+          },
+          "response": []
+        },
+        {
+          "name": "MFA Setup (Enable)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"enable\",\n  \"channel\": \"totp\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/profile/mfa-setup",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "profile", "mfa-setup"]
+            },
+            "description": "Enable MFA for user account"
+          },
+          "response": []
+        },
+        {
+          "name": "MFA Setup (Disable)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"disable\",\n  \"password\": \"user_password\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/profile/mfa-setup",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "profile", "mfa-setup"]
+            },
+            "description": "Disable MFA for user account (requires password)"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Preferences",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"theme\": \"dark\",\n  \"timezone\": \"UTC\",\n  \"email_notifications\": true,\n  \"push_notifications\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/profile/preferences",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "profile", "preferences"]
+            },
+            "description": "Update user preferences (theme, timezone, notifications)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4️⃣ PROTECTED - Notifications (Token + MFA Required)",
+      "item": [
+        {
+          "name": "Get All Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/notifications?tab=all&page=1&per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "notifications"],
+              "query": [
+                {
+                  "key": "tab",
+                  "value": "all",
+                  "description": "Filter: unread | read | archived | all"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "15"
+                }
+              ]
+            },
+            "description": "Get notifications with filters and pagination"
+          },
+          "response": []
+        },
+        {
+          "name": "Mark All as Read",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/notifications/read-all",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "notifications", "read-all"]
+            },
+            "description": "Mark all notifications as read"
+          },
+          "response": []
+        },
+        {
+          "name": "Mark One as Read",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/notifications/1/read",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "notifications", "1", "read"]
+            },
+            "description": "Mark a specific notification as read (replace 1 with notification ID)"
+          },
+          "response": []
+        },
+        {
+          "name": "Snooze Notification",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"minutes\": 30\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/notifications/1/snooze",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "notifications", "1", "snooze"]
+            },
+            "description": "Snooze a notification for specified minutes (replace 1 with notification ID)"
+          },
+          "response": []
+        },
+        {
+          "name": "Archive Notification",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/notifications/1/archive",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "notifications", "1", "archive"]
+            },
+            "description": "Archive a notification (replace 1 with notification ID)"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Notification",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/notifications/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "notifications", "1"]
+            },
+            "description": "Delete a notification (replace 1 with notification ID)"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

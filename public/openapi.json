@@ -1,0 +1,96 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Laravel PW API",
+    "version": "1.0.0",
+    "description": "API documentation for Laravel PW project",
+    "contact": {
+      "name": "API Support"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8000",
+      "description": "Development server"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Check the health status of the application",
+        "tags": ["System"],
+        "responses": {
+          "200": {
+            "description": "Application is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "healthy"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2026-05-26T10:30:00Z"
+                    },
+                    "database": {
+                      "type": "string",
+                      "example": "connected"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Application is unhealthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "unhealthy"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "Database connection failed"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Welcome",
+        "description": "Welcome page",
+        "tags": ["Pages"],
+        "responses": {
+          "200": {
+            "description": "Welcome page content",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,82 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\MFAController;
+use App\Http\Controllers\Auth\PasswordResetController;
+use App\Http\Controllers\Admin\ProfileController;
+use App\Http\Controllers\Admin\NotificationController;
+
+/*
+|--------------------------------------------------------------------------
+| FinZ LMS — Super Admin API Routes
+| Phase 1: Authentication, Profile, Notifications
+|--------------------------------------------------------------------------
+|
+| All routes are versioned under /api/v1
+| Public routes (no token needed): login, forgot-password, reset-password
+| MFA routes: need token but MFA not yet verified
+| Protected routes: need token + MFA verified
+|
+*/
+
+Route::prefix('v1')->group(function () {
+
+    // =========================================================
+    // PUBLIC ROUTES — No token needed
+    // Screen 01: Login, Screen 03: Forgot/Reset Password
+    // =========================================================
+    Route::prefix('auth')->group(function () {
+
+        // Screen 01 — Login
+        Route::post('/login', [LoginController::class, 'login']);
+
+        // Screen 03 — Forgot Password
+        Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink']);
+        Route::post('/reset-password', [PasswordResetController::class, 'resetPassword']);
+    });
+
+    // =========================================================
+    // MFA ROUTES — Token needed but MFA not yet verified
+    // Screen 02: MFA Verification
+    // =========================================================
+    Route::prefix('auth')->middleware(['auth:api'])->group(function () {
+
+        // Screen 02 — MFA
+        Route::post('/mfa/verify', [MFAController::class, 'verify']);
+        Route::post('/mfa/resend', [MFAController::class, 'resend']);
+
+        // Token refresh (call this before token expires)
+        Route::post('/refresh', [LoginController::class, 'refresh']);
+
+        // Logout
+        Route::post('/logout', [LoginController::class, 'logout']);
+    });
+
+    // =========================================================
+    // PROTECTED ROUTES — Token + MFA verified required
+    // Screen 04: Profile Settings
+    // Screen 05: Notification Center
+    // =========================================================
+    Route::prefix('admin')->middleware(['auth:api', 'mfa.verified'])->group(function () {
+
+        // ----- Screen 04: Profile & Personal Settings -----
+        Route::prefix('profile')->group(function () {
+            Route::get('/', [ProfileController::class, 'show']);           // Get profile
+            Route::put('/', [ProfileController::class, 'update']);         // Update name/mobile/photo
+            Route::put('/change-password', [ProfileController::class, 'changePassword']);
+            Route::put('/mfa-setup', [ProfileController::class, 'mfaSetup']);          // Enable/disable/reconfigure MFA
+            Route::put('/preferences', [ProfileController::class, 'updatePreferences']); // Theme, timezone, notif prefs
+        });
+
+        // ----- Screen 05: Notification Center -----
+        Route::prefix('notifications')->group(function () {
+            Route::get('/', [NotificationController::class, 'index']);               // Get all with tabs/filters
+            Route::put('/read-all', [NotificationController::class, 'markAllRead']); // Mark all as read
+            Route::put('/{id}/read', [NotificationController::class, 'markRead']);   // Mark one as read
+            Route::put('/{id}/snooze', [NotificationController::class, 'snooze']);   // Snooze
+            Route::put('/{id}/archive', [NotificationController::class, 'archive']); // Archive
+            Route::delete('/{id}', [NotificationController::class, 'destroy']);      // Delete
+        });
+    });
+});
