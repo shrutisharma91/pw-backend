@@ -19,4 +19,16 @@ class VerificationLogController extends Controller
         
         return response()->json($logs->latest()->paginate(15));
     }
+
+    public function retry(Request $request, $id)
+    {
+        $log = VerificationLog::findOrFail($id);
+        // Mock retry logic
+        $newLog = $log->replicate();
+        $newLog->status = 'success';
+        $newLog->response_payload = ['mock' => 'retry successful'];
+        $newLog->save();
+
+        return response()->json(['message' => 'Verification retried successfully', 'log' => $newLog]);
+    }
 }

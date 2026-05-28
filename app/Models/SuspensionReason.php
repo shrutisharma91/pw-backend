@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Merchant extends Model
+class SuspensionReason extends Model
 {
     protected $guarded = [];
 }
