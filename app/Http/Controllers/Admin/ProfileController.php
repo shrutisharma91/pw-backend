@@ -144,10 +144,27 @@ class ProfileController extends Controller
             ], 422);
         }
 
+        // Check password history (per spec: can't reuse last 5 passwords)
+        $pastPasswords = $user->passwordHistories()->orderBy('created_at', 'desc')->take(5)->get();
+        foreach ($pastPasswords as $pastPassword) {
+            if (Hash::check($request->new_password, $pastPassword->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You cannot reuse any of your last 5 passwords.',
+                    'code'    => 'password_reuse_blocked',
+                ], 422);
+            }
+        }
+
         // Update password
         $user->update([
             'password'            => Hash::make($request->new_password),
             'password_changed_at' => now(),
+        ]);
+
+        // Save password history
+        $user->passwordHistories()->create([
+            'password' => Hash::make($request->new_password),
         ]);
 
         return response()->json([

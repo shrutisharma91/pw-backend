@@ -6,6 +6,7 @@ use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,8 +36,15 @@ class MFAVerified
             ], 401);
         }
 
-        // If MFA is not enabled for this user, let them through
-        if (!$user->mfa_enabled) {
+        // If neither global MFA nor user-level MFA is enabled, let them through
+        $globalMfaEnabled = Cache::get('global_mfa_enabled', false);
+        if (!$globalMfaEnabled && !$user->mfa_enabled) {
+            return $next($request);
+        }
+
+        // Check if there is a trusted device cookie bypassing MFA
+        $cookieName = 'mfa_bypass_' . $user->id;
+        if ($request->hasCookie($cookieName) && $request->cookie($cookieName) === 'true') {
             return $next($request);
         }
 

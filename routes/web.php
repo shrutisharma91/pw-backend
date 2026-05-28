@@ -8,3 +8,6 @@ Route::get('/', function () {
 });
 
 Route::get('/health', [HealthController::class, 'check']);
+
+// Serve local, classic Swagger UI
+Route::view('/swagger', 'swagger');

@@ -51,12 +51,30 @@ class AdminAuth
                 ], 403);
             }
 
-            // Update last active timestamp for session tracking (Screen 13)
-            $user->sessions()
-                 ->where('is_active', true)
-                 ->latest()
-                 ->first()
-                 ?->update(['last_active_at' => now()]);
+            // Verify if the specific session is still active (not revoked)
+            $payload = JWTAuth::parseToken()->getPayload();
+            $jti = $payload->get('jti');
+            $session = \App\Models\AdminSession::where('token_id', $jti)->first();
+
+            if (!$session || !$session->is_active) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Session has been revoked or expired.',
+                    'code'    => 'session_revoked',
+                ], 401);
+            }
+
+            // Check IP rules for user's role
+            if (!\App\Models\RoleConfig::checkIPRules($user->role, $request->ip())) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied from this IP address.',
+                    'code'    => 'ip_restricted',
+                ], 403);
+            }
+
+            // Update last active timestamp
+            $session->update(['last_active_at' => now()]);
 
         } catch (TokenExpiredException $e) {
             return response()->json([

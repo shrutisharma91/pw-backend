@@ -48,7 +48,7 @@ class PasswordResetController extends Controller
         if (!$user) {
             return response()->json([
                 'success' => true,
-                'message' => 'If this email exists, a reset link has been sent.',
+                'message' => 'If this email exists, a password reset code has been sent.',
             ]);
         }
 
@@ -57,33 +57,22 @@ class PasswordResetController extends Controller
             ->where('email', $request->email)
             ->delete();
 
-        // Generate a secure random token
-        $token = Str::random(64);
+        // Generate a secure 6-digit code
+        $code = sprintf('%06d', random_int(0, 999999));
 
         // Store token in database (expires in 15 minutes — as per your spec)
         DB::table('password_reset_tokens')->insert([
             'email'      => $request->email,
-            'token'      => Hash::make($token),
-            'created_at' => now(),
+            'token'      => Hash::make($code),
+            'created_at' => now()->toIso8601String(),
         ]);
 
-        // Build the reset URL
-        // Frontend will receive this link in email and call reset-password API
-        $resetUrl = config('app.frontend_url') . '/reset-password?token=' . $token . '&email=' . urlencode($request->email);
-
         // Send email
-        Mail::send('emails.password-reset', [
-            'name'     => $user->name,
-            'resetUrl' => $resetUrl,
-            'expires'  => '15 minutes',
-        ], function ($message) use ($user) {
-            $message->to($user->email)
-                    ->subject('FinZ Admin — Password Reset Request');
-        });
+        Mail::to($user->email)->send(new \App\Mail\PasswordResetCode($user->name, $code));
 
         return response()->json([
             'success' => true,
-            'message' => 'If this email exists, a reset link has been sent.',
+            'message' => 'If this email exists, a password reset code has been sent.',
             'expires_in_minutes' => 15,
         ]);
     }
@@ -95,7 +84,8 @@ class PasswordResetController extends Controller
     {
         $request->validate([
             'email'                 => 'required|email',
-            'token'                 => 'required|string',
+            'token'                 => 'required_without:code|string',
+            'code'                  => 'required_without:token|string',
             'password'              => [
                 'required',
                 'string',
@@ -119,25 +109,28 @@ class PasswordResetController extends Controller
         if (!$resetRecord) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid or expired reset link.',
+                'message' => 'Invalid or expired reset code.',
             ], 422);
         }
 
         // Has the token expired? (15 minutes)
-        if (now()->diffInMinutes($resetRecord->created_at) > 15) {
+        if (\Illuminate\Support\Carbon::parse($resetRecord->created_at)->addMinutes(15)->isPast()) {
             DB::table('password_reset_tokens')->where('email', $request->email)->delete();
             return response()->json([
                 'success' => false,
-                'message' => 'Reset link has expired. Please request a new one.',
+                'message' => 'Reset code has expired. Please request a new one.',
                 'code'    => 'token_expired',
             ], 422);
         }
 
+        // Get the token/code parameter
+        $token = $request->input('token') ?? $request->input('code');
+
         // Is the token correct?
-        if (!Hash::check($request->token, $resetRecord->token)) {
+        if (!Hash::check($token, $resetRecord->token)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Invalid reset link.',
+                'message' => 'Invalid reset code.',
             ], 422);
         }
 
@@ -151,12 +144,26 @@ class PasswordResetController extends Controller
         }
 
         // Check password history (per spec: can't reuse last 5 passwords)
-        // TODO: implement password_histories table if needed
+        $pastPasswords = $user->passwordHistories()->orderBy('created_at', 'desc')->take(5)->get();
+        foreach ($pastPasswords as $pastPassword) {
+            if (Hash::check($request->password, $pastPassword->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You cannot reuse any of your last 5 passwords.',
+                    'code'    => 'password_reuse_blocked',
+                ], 422);
+            }
+        }
 
         // Update password
         $user->update([
             'password'            => Hash::make($request->password),
             'password_changed_at' => now(),
+        ]);
+
+        // Save password history
+        $user->passwordHistories()->create([
+            'password' => Hash::make($request->password),
         ]);
 
         // Delete the used reset token

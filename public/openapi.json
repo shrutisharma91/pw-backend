@@ -1,95 +1,1042 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "Laravel PW API",
-    "version": "1.0.0",
-    "description": "API documentation for Laravel PW project",
-    "contact": {
-      "name": "API Support"
-    }
+    "title": "FinZ LMS - Super Admin API Reference",
+    "description": "Complete Swagger/OpenAPI documentation for the FinZ LMS Super Admin panel mapping all Phase 1-3 (Screens 01 to 13) features. Includes SSO, failed login CAPTCHAs, MFA skip controls, dashboard feeds, health metrics, bookmarked search commands, auditable impersonation gates, Spatie permission rollbacks, and IP allowance policies.",
+    "version": "1.0.0"
   },
   "servers": [
     {
-      "url": "http://localhost:8000",
-      "description": "Development server"
+      "url": "http://127.0.0.1:8000",
+      "description": "Local Development Server"
     }
   ],
   "paths": {
-    "/health": {
-      "get": {
-        "summary": "Health Check",
-        "description": "Check the health status of the application",
-        "tags": ["System"],
-        "responses": {
-          "200": {
-            "description": "Application is healthy",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "healthy"
-                    },
-                    "timestamp": {
-                      "type": "string",
-                      "format": "date-time",
-                      "example": "2026-05-26T10:30:00Z"
-                    },
-                    "database": {
-                      "type": "string",
-                      "example": "connected"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Application is unhealthy",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "unhealthy"
-                    },
-                    "timestamp": {
-                      "type": "string",
-                      "format": "date-time"
-                    },
-                    "error": {
-                      "type": "string",
-                      "example": "Database connection failed"
-                    }
-                  }
+    "/api/v1/auth/login": {
+      "post": {
+        "summary": "Login (Get JWT Token)",
+        "description": "Checks email/password, checks IP rules, evaluates brute-force lockouts, and generates a math CAPTCHA puzzle challenge if attempts >= 3 in 10 minutes.",
+        "tags": ["1. Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "superadmin@finz.com" },
+                  "password": { "type": "string", "minLength": 6, "example": "password" },
+                  "captcha_key": { "type": "string", "example": "optional-uuid-here" },
+                  "captcha_answer": { "type": "string", "example": "optional-math-answer" }
                 }
               }
             }
           }
+        },
+        "responses": {
+          "200": { "description": "Login successful or MFA required." }
         }
       }
     },
-    "/": {
-      "get": {
-        "summary": "Welcome",
-        "description": "Welcome page",
-        "tags": ["Pages"],
-        "responses": {
-          "200": {
-            "description": "Welcome page content",
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
+    "/api/v1/auth/sso/google": {
+      "post": {
+        "summary": "Google SSO Authentication",
+        "description": "Authenticates users via Google ID token.",
+        "tags": ["1. Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["id_token"],
+                "properties": {
+                  "id_token": { "type": "string", "example": "google_token_here" },
+                  "email": { "type": "string", "example": "superadmin@finz.com" }
                 }
               }
             }
           }
+        },
+        "responses": {
+          "200": { "description": "SSO Auth successful." }
         }
+      }
+    },
+    "/api/v1/auth/sso/microsoft": {
+      "post": {
+        "summary": "Microsoft SSO Authentication",
+        "description": "Authenticates users via Microsoft ID token.",
+        "tags": ["1. Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["id_token"],
+                "properties": {
+                  "id_token": { "type": "string", "example": "microsoft_token_here" },
+                  "email": { "type": "string", "example": "superadmin@finz.com" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "SSO Auth successful." }
+        }
+      }
+    },
+    "/api/v1/auth/mfa/verify": {
+      "post": {
+        "summary": "Verify MFA Code",
+        "description": "Validates 6-digit Google TOTP, Email OTP, or recovery codes. Supports skip-MFA cookies.",
+        "tags": ["1. Authentication"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["otp"],
+                "properties": {
+                  "otp": { "type": "string", "example": "123456" },
+                  "remember_device": { "type": "boolean", "example": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "MFA verified." }
+        }
+      }
+    },
+    "/api/v1/auth/mfa/resend": {
+      "post": {
+        "summary": "Resend MFA Email OTP",
+        "tags": ["1. Authentication"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "OTP sent successfully." }
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "summary": "Refresh JWT Token",
+        "tags": ["1. Authentication"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Token refreshed successfully." }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "summary": "Logout Admin",
+        "description": "Invalidates JWT token and marks the logged-in session active status to false.",
+        "tags": ["1. Authentication"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Logged out successfully." }
+        }
+      }
+    },
+    "/api/v1/auth/mfa/toggle": {
+      "post": {
+        "summary": "Toggle Global MFA Switch (Project level)",
+        "description": "Toggles Multi-Factor Authentication project-wide. If disabled, all users can bypass MFA during logins instantly.",
+        "tags": ["1. Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["enabled"],
+                "properties": {
+                  "enabled": { "type": "boolean", "example": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Global MFA status successfully updated." }
+        }
+      }
+    },
+    "/api/v1/auth/forgot-password": {
+      "post": {
+        "summary": "Request Password Reset Link",
+        "tags": ["1. Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": { "type": "string", "example": "superadmin@finz.com" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Reset token link sent." }
+        }
+      }
+    },
+    "/api/v1/auth/reset-password": {
+      "post": {
+        "summary": "Reset Password via Token",
+        "description": "Sets new password. Validates complexity and prevents reusing the last 5 passwords.",
+        "tags": ["1. Authentication"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "token", "password", "password_confirmation"],
+                "properties": {
+                  "email": { "type": "string", "example": "superadmin@finz.com" },
+                  "token": { "type": "string", "example": "reset_token_xyz" },
+                  "password": { "type": "string", "example": "SecurePass123!" },
+                  "password_confirmation": { "type": "string", "example": "SecurePass123!" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Password reset successfully." }
+        }
+      }
+    },
+    "/api/v1/admin/profile": {
+      "get": {
+        "summary": "Get Profile Info",
+        "tags": ["2. Personal Profile"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Profile data fetched successfully." }
+        }
+      },
+      "put": {
+        "summary": "Update Profile Details",
+        "description": "Modifies name, mobile, and uploads a fresh profile photo.",
+        "tags": ["2. Personal Profile"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "example": "Updated Name" },
+                  "mobile": { "type": "string", "example": "9876543210" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Profile updated successfully." }
+        }
+      }
+    },
+    "/api/v1/admin/profile/change-password": {
+      "put": {
+        "summary": "Change Profile Password",
+        "description": "Changes user password. Restricts password reuse against the last 5 passwords.",
+        "tags": ["2. Personal Profile"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["current_password", "new_password", "new_password_confirmation"],
+                "properties": {
+                  "current_password": { "type": "string", "example": "password" },
+                  "new_password": { "type": "string", "example": "SecurePass99!" },
+                  "new_password_confirmation": { "type": "string", "example": "SecurePass99!" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Password updated successfully." }
+        }
+      }
+    },
+    "/api/v1/admin/profile/mfa-setup": {
+      "put": {
+        "summary": "MFA Activation / Deactivation",
+        "tags": ["2. Personal Profile"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["action"],
+                "properties": {
+                  "action": { "type": "string", "enum": ["enable", "disable", "change_channel"], "example": "enable" },
+                  "channel": { "type": "string", "enum": ["email", "totp"], "example": "totp" },
+                  "otp_confirm": { "type": "string", "example": "123456" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "MFA Setup updated." }
+        }
+      }
+    },
+    "/api/v1/admin/profile/preferences": {
+      "put": {
+        "summary": "Update Theme & Timezone Preferences",
+        "tags": ["2. Personal Profile"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "theme": { "type": "string", "example": "dark" },
+                  "timezone": { "type": "string", "example": "Asia/Kolkata" },
+                  "notification_channels": {
+                    "type": "object",
+                    "properties": {
+                      "in_app": { "type": "boolean", "example": true },
+                      "email": { "type": "boolean", "example": true }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Preferences saved." }
+        }
+      }
+    },
+    "/api/v1/admin/notifications": {
+      "get": {
+        "summary": "Get Notification Feed",
+        "tags": ["3. Notification Center"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "tab", "in": "query", "schema": { "type": "string" }, "example": "unread" }
+        ],
+        "responses": {
+          "200": { "description": "List of notifications fetched." }
+        }
+      }
+    },
+    "/api/v1/admin/notifications/read-all": {
+      "put": {
+        "summary": "Mark All as Read",
+        "tags": ["3. Notification Center"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "All notifications marked read." }
+        }
+      }
+    },
+    "/api/v1/admin/notifications/{id}/read": {
+      "put": {
+        "summary": "Mark Single Read",
+        "tags": ["3. Notification Center"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Notification marked read." }
+        }
+      }
+    },
+    "/api/v1/admin/notifications/{id}/snooze": {
+      "put": {
+        "summary": "Snooze Notification",
+        "tags": ["3. Notification Center"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["minutes"],
+                "properties": {
+                  "minutes": { "type": "integer", "example": 60 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Notification snoozed." }
+        }
+      }
+    },
+    "/api/v1/admin/notifications/{id}/archive": {
+      "put": {
+        "summary": "Archive Notification",
+        "tags": ["3. Notification Center"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Notification archived successfully." }
+        }
+      }
+    },
+    "/api/v1/admin/notifications/{id}": {
+      "delete": {
+        "summary": "Delete Notification",
+        "tags": ["3. Notification Center"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Notification deleted." }
+        }
+      }
+    },
+    "/api/v1/admin/dashboard": {
+      "get": {
+        "summary": "Fetch Main KPIs Dashboard",
+        "tags": ["4. Command Center"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Dashboard KPI metrics." }
+        }
+      }
+    },
+    "/api/v1/admin/dashboard/live-stream": {
+      "get": {
+        "summary": "Live application streams feed",
+        "tags": ["4. Command Center"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Stream data." }
+        }
+      }
+    },
+    "/api/v1/admin/dashboard/action-tray": {
+      "get": {
+        "summary": "Super Admin Action Tray list",
+        "tags": ["4. Command Center"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Approvals and SLA breaches." }
+        }
+      }
+    },
+    "/api/v1/admin/system-health": {
+      "get": {
+        "summary": "System Health Status",
+        "tags": ["5. System Monitoring"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Full hardware status." }
+        }
+      }
+    },
+    "/api/v1/admin/system-health/api-status": {
+      "get": {
+        "summary": "Api & Services Uptime",
+        "tags": ["5. System Monitoring"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Uptimes details." }
+        }
+      }
+    },
+    "/api/v1/admin/system-health/queue-depth": {
+      "get": {
+        "summary": "Redis Queue Job Depth",
+        "tags": ["5. System Monitoring"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Redis job counts." }
+        }
+      }
+    },
+    "/api/v1/admin/system-health/integrations": {
+      "get": {
+        "summary": "GST, Bureau & Bank Integration Nodes",
+        "tags": ["5. System Monitoring"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Nodes status." }
+        }
+      }
+    },
+    "/api/v1/admin/system-health/error-logs": {
+      "get": {
+        "summary": "Recent Debug & Error Logs",
+        "tags": ["5. System Monitoring"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Logs details." }
+        }
+      }
+    },
+    "/api/v1/admin/system-health/maintenance": {
+      "post": {
+        "summary": "Toggle Maintenance Mode",
+        "tags": ["5. System Monitoring"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Maintenance mode toggled." }
+        }
+      }
+    },
+    "/api/v1/admin/search": {
+      "get": {
+        "summary": "Global Command Search",
+        "tags": ["6. Global Search"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "q", "in": "query", "required": true, "schema": { "type": "string" }, "example": "merchant" }
+        ],
+        "responses": {
+          "200": { "description": "Search records fetched." }
+        }
+      }
+    },
+    "/api/v1/admin/search/recent": {
+      "get": {
+        "summary": "Recent Searches",
+        "tags": ["6. Global Search"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "List of recent searches." }
+        }
+      }
+    },
+    "/api/v1/admin/search/save": {
+      "post": {
+        "summary": "Save Search Query",
+        "tags": ["6. Global Search"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                  "query": { "type": "string", "example": "lenders" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Search query bookmarked." }
+        }
+      }
+    },
+    "/api/v1/admin/search/saved/{id}": {
+      "delete": {
+        "summary": "Delete Saved Search Query",
+        "tags": ["6. Global Search"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Saved search deleted." }
+        }
+      }
+    },
+    "/api/v1/admin/users": {
+      "get": {
+        "summary": "List Users",
+        "tags": ["7. User Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "role", "in": "query", "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Users list fetched." }
+        }
+      },
+      "post": {
+        "summary": "Create Portal User",
+        "tags": ["7. User Management"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "mobile", "role"],
+                "properties": {
+                  "name": { "type": "string", "example": "John Doe" },
+                  "email": { "type": "string", "format": "email", "example": "john@example.com" },
+                  "mobile": { "type": "string", "example": "9876543210" },
+                  "role": { "type": "string", "example": "store_manager" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "User created successfully." }
+        }
+      }
+    },
+    "/api/v1/admin/users/bulk-disable": {
+      "post": {
+        "summary": "Bulk Disable Accounts",
+        "tags": ["7. User Management"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["user_ids", "reason"],
+                "properties": {
+                  "user_ids": { "type": "array", "items": { "type": "integer" }, "example": [2, 3] },
+                  "reason": { "type": "string", "example": "Terms violations." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Users disabled." }
+        }
+      }
+    },
+    "/api/v1/admin/users/export/csv": {
+      "get": {
+        "summary": "Export Users Catalog as CSV",
+        "tags": ["7. User Management"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "CSV stream." }
+        }
+      }
+    },
+    "/api/v1/admin/users/{id}": {
+      "get": {
+        "summary": "Get User Details",
+        "tags": ["7. User Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "User details fetched." }
+        }
+      },
+      "put": {
+        "summary": "Update User Info",
+        "tags": ["7. User Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "example": "Alice Smith" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "User updated." }
+        }
+      }
+    },
+    "/api/v1/admin/users/{id}/disable": {
+      "post": {
+        "summary": "Disable User Account",
+        "tags": ["7. User Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["reason"],
+                "properties": {
+                  "reason": { "type": "string", "example": "Employment termination." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "User disabled and sessions terminated." }
+        }
+      }
+    },
+    "/api/v1/admin/users/{id}/enable": {
+      "post": {
+        "summary": "Enable User Account",
+        "tags": ["7. User Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "User enabled successfully." }
+        }
+      }
+    },
+    "/api/v1/admin/users/{id}/reset-password": {
+      "post": {
+        "summary": "Super Admin Force Password Reset",
+        "tags": ["7. User Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Password reset credentials emailed." }
+        }
+      }
+    },
+    "/api/v1/admin/users/{id}/force-mfa": {
+      "post": {
+        "summary": "Force MFA setup on next login",
+        "tags": ["7. User Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "MFA configuration locked for user." }
+        }
+      }
+    },
+    "/api/v1/admin/users/{id}/impersonate": {
+      "post": {
+        "summary": "Impersonate User (Audited Start)",
+        "description": "Log into platform as another user. Records auditable details in DB.",
+        "tags": ["7. User Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["reason"],
+                "properties": {
+                  "reason": { "type": "string", "example": "Verify dashboard layout." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Impersonation started successfully." }
+        }
+      }
+    },
+    "/api/v1/admin/roles": {
+      "get": {
+        "summary": "List Roles",
+        "tags": ["8. Role Management"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Roles list with user count." }
+        }
+      },
+      "post": {
+        "summary": "Define Custom Role",
+        "tags": ["8. Role Management"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string", "example": "finance_ops" },
+                  "permissions": { "type": "array", "items": { "type": "string" }, "example": ["view_users"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Role defined successfully." }
+        }
+      }
+    },
+    "/api/v1/admin/roles/{id}": {
+      "get": {
+        "summary": "Get Role Details",
+        "tags": ["8. Role Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Role description details." }
+        }
+      },
+      "put": {
+        "summary": "Rename Dynamic Role",
+        "tags": ["8. Role Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string", "example": "senior_ops" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Role updated." }
+        }
+      },
+      "delete": {
+        "summary": "Archive Custom Role",
+        "tags": ["8. Role Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Role archived successfully." }
+        }
+      }
+    },
+    "/api/v1/admin/roles/{id}/clone": {
+      "post": {
+        "summary": "Clone Role Permissions Mapping",
+        "tags": ["8. Role Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["new_name"],
+                "properties": {
+                  "new_name": { "type": "string", "example": "merchant_read_only" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Role cloned successfully." }
+        }
+      }
+    },
+    "/api/v1/admin/permissions": {
+      "get": {
+        "summary": "Get Permissions Grid Matrix",
+        "tags": ["9. Permission Matrix"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Full side-by-side RBAC Matrix." }
+        }
+      }
+    },
+    "/api/v1/admin/permissions/roles/{id}": {
+      "put": {
+        "summary": "Update Role Permissions Matrix",
+        "description": "Applies new permissions. Creates a backup snapshot in DB audit table.",
+        "tags": ["9. Permission Matrix"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["permissions"],
+                "properties": {
+                  "permissions": { "type": "array", "items": { "type": "string" }, "example": ["view_users"] }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Permissions sync successfully." }
+        }
+      }
+    },
+    "/api/v1/admin/permissions/roles/{id}/diff/{compareId}": {
+      "get": {
+        "summary": "Compare two roles side by side",
+        "tags": ["9. Permission Matrix"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "compareId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Permissions differences details." }
+        }
+      }
+    },
+    "/api/v1/admin/permissions/roles/{id}/rollback": {
+      "post": {
+        "summary": "Rollback Permissions Matrix",
+        "description": "Restores permission matrix backup by looking up audit_logs snapshot.",
+        "tags": ["9. Permission Matrix"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Matrix rolled back successfully." }
+        }
+      }
+    },
+    "/api/v1/admin/sessions": {
+      "get": {
+        "summary": "List Active Sessions",
+        "tags": ["10. Device & Sessions"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "suspicious", "in": "query", "schema": { "type": "boolean" }, "example": true }
+        ],
+        "responses": {
+          "200": { "description": "Active session catalog list." }
+        }
+      }
+    },
+    "/api/v1/admin/sessions/{id}/revoke": {
+      "post": {
+        "summary": "Terminate Session",
+        "tags": ["10. Device & Sessions"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "Session revoked. Target user logged out." }
+        }
+      }
+    },
+    "/api/v1/admin/sessions/users/{userId}/revoke-all": {
+      "post": {
+        "summary": "Revoke All Sessions for User",
+        "tags": ["10. Device & Sessions"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": { "description": "All sessions terminated." }
+        }
+      }
+    },
+    "/api/v1/admin/sessions/suspicious": {
+      "get": {
+        "summary": "List Suspicious Active Sessions",
+        "tags": ["10. Device & Sessions"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "Flagged sessions." }
+        }
+      }
+    },
+    "/api/v1/admin/sessions/ip-rules": {
+      "put": {
+        "summary": "Update IP & Session Rules",
+        "description": "Saves IP allowlists/denylists and concurrent session limits persistently in DB.",
+        "tags": ["10. Device & Sessions"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["role"],
+                "properties": {
+                  "role": { "type": "string", "example": "merchant_admin" },
+                  "allowlist": { "type": "array", "items": { "type": "string" }, "example": ["127.0.0.1", "192.168.1.0/24"] },
+                  "denylist": { "type": "array", "items": { "type": "string" }, "example": ["10.0.0.5"] },
+                  "concurrent_session_limit": { "type": "integer", "example": 5 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Rules saved successfully." }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
       }
     }
   }
