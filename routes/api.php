@@ -37,12 +37,8 @@ Route::prefix('v1')->group(function () {
         // Screen 01 — Login
         Route::post('/login', [LoginController::class, 'login']);
 
-        // SSO placeholders
-        Route::post('/sso/google', [LoginController::class, 'ssoGoogle']);
-        Route::post('/sso/microsoft', [LoginController::class, 'ssoMicrosoft']);
 
-        // Global MFA toggle (Project level)
-        Route::post('/mfa/toggle', [LoginController::class, 'toggleGlobalMFA']);
+
 
         // Screen 03 — Forgot Password
         Route::post('/forgot-password', [PasswordResetController::class, 'sendResetLink']);
@@ -59,8 +55,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/mfa/verify', [MFAController::class, 'verify']);
         Route::post('/mfa/resend', [MFAController::class, 'resend']);
 
-        // Token refresh (call this before token expires)
-        Route::post('/refresh', [LoginController::class, 'refresh']);
+
 
         // Logout
         Route::post('/logout', [LoginController::class, 'logout']);
@@ -77,9 +72,6 @@ Route::prefix('v1')->group(function () {
         Route::prefix('profile')->group(function () {
             Route::get('/', [ProfileController::class, 'show']);           // Get profile
             Route::put('/', [ProfileController::class, 'update']);         // Update name/mobile/photo
-            Route::put('/change-password', [ProfileController::class, 'changePassword']);
-            Route::put('/mfa-setup', [ProfileController::class, 'mfaSetup']);          // Enable/disable/reconfigure MFA
-            Route::put('/preferences', [ProfileController::class, 'updatePreferences']); // Theme, timezone, notif prefs
         });
 
         // ----- Screen 05: Notification Center -----
@@ -132,7 +124,8 @@ Route::prefix('users')->group(function () {
     Route::put('/{id}', [UserController::class, 'update']);                   // Screen 10 — edit user
     Route::post('/{id}/disable', [UserController::class, 'disable']);         // Screen 09 — disable user
     Route::post('/{id}/enable', [UserController::class, 'enable']);           // Screen 09 — enable user
-    Route::post('/{id}/reset-password', [UserController::class, 'resetPassword']); // Screen 09 — force reset
+    Route::post('/{id}/reset-password', [UserController::class, 'resetPassword']);
+    Route::put('/{id}/change-password', [UserController::class, 'changePassword']);
     Route::post('/{id}/force-mfa', [UserController::class, 'forceMFA']);      // Screen 09 — force MFA setup
     Route::post('/bulk-disable', [UserController::class, 'bulkDisable']);     // Screen 09 — bulk disable
     Route::get('/export/csv', [UserController::class, 'exportCSV']);          // Screen 09 — export

@@ -110,9 +110,6 @@ class User extends Authenticatable implements JWTSubject
     // Check if the user has verified MFA in this session
     public function hasMFAVerifiedThisSession(): bool
     {
-        if (!$this->mfa_enabled) {
-            return true; // MFA not required, skip
-        }
         if (!$this->mfa_verified_at) {
             return false;
         }

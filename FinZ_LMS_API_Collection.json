@@ -43,50 +43,7 @@
             "description": "Login with email and password. Generates CAPTCHA requirements if attempts >= 3."
           }
         },
-        {
-          "name": "Google SSO Login",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"id_token\": \"mock_google_id_token_xyz\",\n  \"email\": \"superadmin@finz.com\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/sso/google",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "sso", "google"]
-            },
-            "description": "Log in via Google SSO placeholder."
-          }
-        },
-        {
-          "name": "Microsoft SSO Login",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"id_token\": \"mock_microsoft_id_token_abc\",\n  \"email\": \"superadmin@finz.com\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/sso/microsoft",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "sso", "microsoft"]
-            },
-            "description": "Log in via Microsoft SSO placeholder."
-          }
-        },
+
         {
           "name": "Forgot Password",
           "request": {
@@ -180,24 +137,7 @@
             "description": "Resends a new email OTP if the previous one expired."
           }
         },
-        {
-          "name": "Refresh Token",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/refresh",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "refresh"]
-            },
-            "description": "Issues a fresh JWT token before the current one expires."
-          }
-        },
+
         {
           "name": "Logout",
           "request": {
@@ -235,57 +175,6 @@
               "raw": "{{base_url}}/api/v1/admin/profile",
               "host": ["{{base_url}}"],
               "path": ["api", "v1", "admin", "profile"]
-            }
-          }
-        },
-        {
-          "name": "Change My Password",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"current_password\": \"password\",\n  \"new_password\": \"SecurePass99!\",\n  \"new_password_confirmation\": \"SecurePass99!\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/admin/profile/change-password",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "admin", "profile", "change-password"]
-            },
-            "description": "Update password with a reuse validation check against the last 5 passwords."
-          }
-        },
-        {
-          "name": "MFA Setup (Enable/Disable)",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"action\": \"enable\",\n  \"channel\": \"totp\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/admin/profile/mfa-setup",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "admin", "profile", "mfa-setup"]
             }
           }
         }
@@ -437,6 +326,58 @@
           }
         },
         {
+          "name": "Request Password Reset Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"sharmashruti160924@gmail.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/users/9/reset-password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "users", "9", "reset-password"]
+            },
+            "description": "Super Admin only. Path id = target user. Email = Super Admin login email. Code is sent to Super Admin."
+          }
+        },
+        {
+          "name": "Change User Password",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"verification_code\": \"123456\",\n  \"new_password\": \"SecurePass99!\",\n  \"new_password_confirmation\": \"SecurePass99!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/users/9/change-password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "users", "9", "change-password"]
+            },
+            "description": "Super Admin only. Path id = target user. Uses verification code from Super Admin email."
+          }
+        },
+        {
           "name": "Impersonate User (Audited Start)",
           "request": {
             "method": "POST",
@@ -465,10 +406,108 @@
       ]
     },
     {
-      "name": "7️⃣ PROTECTED - Permission Matrix & Snapshots (Screen 11, 12)",
+      "name": "7️⃣ PROTECTED - Role Management (Screen 11)",
       "item": [
         {
-          "name": "Get Matrix Matrix",
+          "name": "List Roles",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/roles",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "roles"]
+            }
+          }
+        },
+        {
+          "name": "Define Custom Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"finance_ops\",\n  \"permissions\": [\"view_users\", \"view_roles\", \"edit_users\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/roles",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "roles"]
+            }
+          }
+        },
+        {
+          "name": "Get Role Details",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/roles/2",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "roles", "2"]
+            }
+          }
+        },
+        {
+          "name": "Rename Custom Role",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"finance_ops_senior\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/roles/2",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "roles", "2"]
+            }
+          }
+        },
+        {
+          "name": "Clone Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_name\": \"finance_ops_readonly\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/roles/2/clone",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "roles", "2", "clone"]
+            }
+          }
+        },
+        {
+          "name": "Archive Custom Role",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/roles/2",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "roles", "2"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8️⃣ PROTECTED - Permission Matrix (Screen 12)",
+      "item": [
+        {
+          "name": "Get Permissions Matrix",
           "request": {
             "method": "GET",
             "header": [
@@ -500,7 +539,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"permissions\": [\"view_users\", \"edit_profile\", \"change_password\"]\n}"
+              "raw": "{\n  \"permissions\": [\"view_users\", \"edit_profile\", \"view_roles\", \"create_users\"]\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/v1/admin/permissions/roles/2",
@@ -508,6 +547,18 @@
               "path": ["api", "v1", "admin", "permissions", "roles", "2"]
             },
             "description": "Applies new permissions to a role while backing up the old configuration snapshot inside the audit_logs table."
+          }
+        },
+        {
+          "name": "Compare Two Roles",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/permissions/roles/2/diff/3",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "permissions", "roles", "2", "diff", "3"]
+            }
           }
         },
         {

@@ -21,7 +21,6 @@ use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 | APIs:
 |   POST /api/v1/auth/login    → login with email + password
 |   POST /api/v1/auth/logout   → logout and invalidate token
-|   POST /api/v1/auth/refresh  → get a fresh token before expiry
 |
 | Flow:
 |   1. Validate email/password
@@ -188,54 +187,20 @@ class LoginController extends Controller
         // Step 9: Log this session for Screen 13 (Session Management)
         $this->logSession($user, $token);
 
-        $hasBypass = false;
+        // Step 10: MFA is permanently enabled for all users.
+        // Send OTP
+        app(\App\Services\MFAService::class)->sendOTP($user);
 
-        // Step 10: Check global project-level MFA toggle or individual user-level MFA toggle
-        $globalMfaEnabled = Cache::get('global_mfa_enabled', false);
-        if ($globalMfaEnabled || $user->mfa_enabled) {
-            $cookieName = 'mfa_bypass_' . $user->id;
-            $hasBypass = $request->hasCookie($cookieName) && $request->cookie($cookieName) === 'true';
-
-            if ($hasBypass) {
-                \Illuminate\Support\Facades\Log::info("MFA bypassed for user {$user->id} via cookie {$cookieName}");
-                // Instantly mark MFA verified for this session
-                $user->update(['mfa_verified_at' => now()]);
-            } else {
-                // Send OTP
-                app(\App\Services\MFAService::class)->sendOTP($user);
-
-                // Tell frontend: show MFA screen (Screen 02)
-                return response()->json([
-                    'success'      => true,
-                    'mfa_required' => true,
-                    'message'      => 'OTP sent. Please verify to continue.',
-                    'access_token' => $token, // temp token — cannot access protected routes yet
-                    'user' => [
-                        'name'        => $user->name,
-                        'email'       => $user->email,
-                        'mfa_channel' => $user->mfa_channel ?? 'email',
-                    ],
-                ]);
-            }
-        }
-
-        // Step 11: No MFA (or bypassed via trusted device) — login complete, return token + user info
+        // Tell frontend: show MFA screen (Screen 02)
         return response()->json([
             'success'      => true,
-            'mfa_required' => false,
-            'mfa_bypassed' => $hasBypass,
-            'message'      => 'Login successful.',
-            'access_token' => $token,
-            'token_type'   => 'bearer',
-            'expires_in'   => config('jwt.ttl') * 60, // seconds
+            'mfa_required' => true,
+            'message'      => 'OTP sent. Please verify to continue.',
+            'access_token' => $token, // temp token — cannot access protected routes yet
             'user' => [
-                'id'       => $user->id,
-                'name'     => $user->name,
-                'email'    => $user->email,
-                'role'     => $user->role,
-                'theme'    => $user->theme,
-                'timezone' => $user->timezone,
-                'photo'    => $user->profile_photo,
+                'name'        => $user->name,
+                'email'       => $user->email,
+                'mfa_channel' => $user->mfa_channel ?? 'email',
             ],
         ]);
     }
@@ -274,114 +239,7 @@ class LoginController extends Controller
         }
     }
 
-    // ------------------------------------------------------------------
-    // POST /api/v1/auth/refresh
-    // ------------------------------------------------------------------
-    public function refresh()
-    {
-        try {
-            $newToken = JWTAuth::refresh(JWTAuth::getToken());
-            return response()->json([
-                'success'      => true,
-                'access_token' => $newToken,
-                'token_type'   => 'bearer',
-                'expires_in'   => config('jwt.ttl') * 60,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Token refresh failed. Please login again.',
-            ], 401);
-        }
-    }
 
-    // ------------------------------------------------------------------
-    // POST /api/v1/auth/sso/google
-    // ------------------------------------------------------------------
-    public function ssoGoogle(Request $request)
-    {
-        $request->validate([
-            'id_token' => 'required|string',
-        ]);
-
-        $email = $request->input('email', 'superadmin@finz.com');
-        $user = User::where('email', $email)->first();
-
-        if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'SSO user not registered in LMS. Please contact system admin.',
-            ], 403);
-        }
-
-        if (!$user->is_active) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Account is disabled.',
-            ], 403);
-        }
-
-        $token = JWTAuth::fromUser($user);
-        $this->logSession($user, $token);
-
-        return response()->json([
-            'success'      => true,
-            'message'      => 'SSO Login successful via Google.',
-            'access_token' => $token,
-            'token_type'   => 'bearer',
-            'expires_in'   => config('jwt.ttl') * 60,
-            'user' => [
-                'id'       => $user->id,
-                'name'     => $user->name,
-                'email'    => $user->email,
-                'role'     => $user->role,
-            ],
-        ]);
-    }
-
-    // ------------------------------------------------------------------
-    // POST /api/v1/auth/sso/microsoft
-    // ------------------------------------------------------------------
-    public function ssoMicrosoft(Request $request)
-    {
-        $request->validate([
-            'id_token' => 'required|string',
-        ]);
-
-        $email = $request->input('email', 'superadmin@finz.com');
-        $user = User::where('email', $email)->first();
-
-        if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'SSO user not registered in LMS. Please contact system admin.',
-            ], 403);
-        }
-
-        if (!$user->is_active) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Account is disabled.',
-            ], 403);
-        }
-
-        $token = JWTAuth::fromUser($user);
-        $this->logSession($user, $token);
-
-        return response()->json([
-            'success'      => true,
-            'message'      => 'SSO Login successful via Microsoft.',
-            'access_token' => $token,
-            'token_type'   => 'bearer',
-            'expires_in'   => config('jwt.ttl') * 60,
-            'user' => [
-                'id'       => $user->id,
-                'name'     => $user->name,
-                'email'    => $user->email,
-                'role'     => $user->role,
-            ],
-        ]);
-    }
 
     // ------------------------------------------------------------------
     // Private helper: log login session to admin_sessions table
@@ -441,22 +299,5 @@ class LoginController extends Controller
         return 'desktop';
     }
 
-    // ------------------------------------------------------------------
-    // POST /api/v1/auth/mfa/toggle
-    // Toggles project-wide global MFA state
-    // ------------------------------------------------------------------
-    public function toggleGlobalMFA(Request $request)
-    {
-        $request->validate([
-            'enabled' => 'required|boolean',
-        ]);
 
-        Cache::forever('global_mfa_enabled', $request->boolean('enabled'));
-
-        return response()->json([
-            'success' => true,
-            'global_mfa_enabled' => $request->boolean('enabled'),
-            'message' => 'Project-level Global MFA status successfully updated to ' . ($request->boolean('enabled') ? 'ENABLED' : 'DISABLED') . '.',
-        ]);
-    }
 }

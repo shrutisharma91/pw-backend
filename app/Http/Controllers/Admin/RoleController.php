@@ -3,47 +3,82 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use App\Models\AuditLog;
+use App\Models\RoleConfig;
+use App\Models\User;
+use App\Support\RbacCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Spatie\Permission\Models\Role;
+use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Permission;
-
-/*
-|--------------------------------------------------------------------------
-| RoleController
-|--------------------------------------------------------------------------
-| Screen 11 — Role Management
-| Screen 12 — Permission Matrix
-|
-| Uses Spatie Laravel Permission package.
-| All roles and permissions are stored in the spatie tables.
-*/
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class RoleController extends Controller
 {
+    private function apiGuard(): string
+    {
+        return RbacCatalog::guard();
+    }
+
+    private function findApiRole(int $id): Role
+    {
+        return Role::with('permissions')
+            ->where('guard_name', $this->apiGuard())
+            ->findOrFail($id);
+    }
+
+    /** @return array<int, int> */
+    private function userCountsByRole(): array
+    {
+        return DB::table('model_has_roles')
+            ->where('model_type', User::class)
+            ->selectRaw('role_id, COUNT(*) as aggregate')
+            ->groupBy('role_id')
+            ->pluck('aggregate', 'role_id')
+            ->map(fn ($count) => (int) $count)
+            ->all();
+    }
+
+    private function formatRole(Role $role, array $userCounts): array
+    {
+        return [
+            'id'           => $role->id,
+            'name'         => $role->name,
+            'guard_name'   => $role->guard_name,
+            'is_builtin'   => RbacCatalog::isBuiltinRole($role->name),
+            'user_count'   => $userCounts[$role->id] ?? 0,
+            'permissions'  => $role->permissions->pluck('name')->values(),
+            'created_at'   => $role->created_at,
+            'updated_at'   => $role->updated_at,
+        ];
+    }
+
+    /** @param list<string> $names */
+    private function syncRolePermissions(Role $role, array $names): void
+    {
+        $permissions = collect($names)->map(
+            fn (string $name) => Permission::findOrCreate($name, $this->apiGuard())
+        );
+
+        $role->syncPermissions($permissions);
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
     // ------------------------------------------------------------------
     // GET /api/v1/admin/roles
-    // Screen 11 — List all roles with user count
     // ------------------------------------------------------------------
     public function index()
     {
-        $roles = Role::withCount('users')
-            ->where('guard_name', 'api')
+        $userCounts = $this->userCountsByRole();
+
+        $roles = Role::with('permissions')
+            ->where('guard_name', $this->apiGuard())
+            ->orderBy('name')
             ->get()
-            ->map(function ($role) {
-                return [
-                    'id'          => $role->id,
-                    'name'        => $role->name,
-                    'guard_name'  => $role->guard_name,
-                    'user_count'  => $role->users_count,
-                    'permissions' => $role->permissions->pluck('name'),
-                    'created_at'  => $role->created_at,
-                    'updated_at'  => $role->updated_at,
-                ];
-            });
+            ->map(fn (Role $role) => $this->formatRole($role, $userCounts));
 
         return response()->json([
             'success' => true,
@@ -53,66 +88,81 @@ class RoleController extends Controller
 
     // ------------------------------------------------------------------
     // GET /api/v1/admin/roles/{id}
-    // Screen 11 — Single role detail
     // ------------------------------------------------------------------
     public function show(int $id)
     {
-        $role = Role::with('permissions')->findOrFail($id);
+        $role = $this->findApiRole($id);
+        $userCounts = $this->userCountsByRole();
 
         return response()->json([
             'success' => true,
-            'data' => [
-                'id'          => $role->id,
-                'name'        => $role->name,
-                'permissions' => $role->permissions->pluck('name'),
-                'user_count'  => $role->users()->count(),
-                'users'       => $role->users()->limit(10)->get(['id', 'name', 'email']),
-            ],
+            'data'    => array_merge($this->formatRole($role, $userCounts), [
+                'users' => $role->users()->limit(10)->get(['id', 'name', 'email']),
+            ]),
         ]);
     }
 
     // ------------------------------------------------------------------
     // POST /api/v1/admin/roles
-    // Screen 11 — Create new role
-    // Body: { "name": "finance_ops", "permissions": ["view_loans", "export_reports"] }
     // ------------------------------------------------------------------
     public function store(Request $request)
     {
+        $guard = $this->apiGuard();
+
         $request->validate([
-            'name'          => 'required|string|max:100|unique:roles,name',
+            'name'          => [
+                'required',
+                'string',
+                'max:100',
+                'regex:/^[a-z][a-z0-9_]*$/',
+                Rule::unique('roles', 'name')->where('guard_name', $guard),
+                Rule::notIn(RbacCatalog::builtinRoles()),
+            ],
             'permissions'   => 'sometimes|array',
-            'permissions.*' => 'string|exists:permissions,name',
+            'permissions.*' => ['string', Rule::in(RbacCatalog::allPermissionNames())],
+        ], [
+            'name.regex'    => 'Role name must be lowercase letters, numbers, and underscores (e.g. finance_ops).',
+            'name.not_in'   => 'This name is reserved for a built-in role.',
         ]);
 
         $role = Role::create([
             'name'       => $request->name,
-            'guard_name' => 'api',
+            'guard_name' => $guard,
         ]);
 
         if ($request->filled('permissions')) {
-            $role->syncPermissions($request->permissions);
+            $this->syncRolePermissions($role, $request->permissions);
         }
 
-        Log::info("Role '{$role->name}' created by admin " . auth()->id());
+        RoleConfig::firstOrCreate(
+            ['role_name' => $role->name],
+            [
+                'allowlist'                => [],
+                'denylist'                 => [],
+                'concurrent_session_limit' => 5,
+            ]
+        );
+
+        $role->load('permissions');
+
+        Log::info("Custom role '{$role->name}' created by admin " . auth()->id());
 
         return response()->json([
             'success' => true,
             'message' => "Role '{$role->name}' created successfully.",
-            'data'    => ['id' => $role->id, 'name' => $role->name],
+            'data'    => $this->formatRole($role, $this->userCountsByRole()),
         ], 201);
     }
 
     // ------------------------------------------------------------------
     // PUT /api/v1/admin/roles/{id}
-    // Screen 11 — Edit role name
     // ------------------------------------------------------------------
     public function update(Request $request, int $id)
     {
-        $role = Role::findOrFail($id);
+        $role = $this->findApiRole($id);
+        $guard = $this->apiGuard();
 
-        // Prevent editing built-in roles
-        $builtIn = ['super_admin', 'merchant_admin', 'store_manager', 'sales_exec', 'lender_ops', 'risk_user', 'customer'];
-        if (in_array($role->name, $builtIn)) {
+        if (RbacCatalog::isBuiltinRole($role->name)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Built-in roles cannot be renamed.',
@@ -120,37 +170,68 @@ class RoleController extends Controller
         }
 
         $request->validate([
-            'name' => 'required|string|max:100|unique:roles,name,' . $id,
+            'name' => [
+                'required',
+                'string',
+                'max:100',
+                'regex:/^[a-z][a-z0-9_]*$/',
+                Rule::unique('roles', 'name')->where('guard_name', $guard)->ignore($role->id),
+                Rule::notIn(RbacCatalog::builtinRoles()),
+            ],
         ]);
 
+        $oldName = $role->name;
         $role->update(['name' => $request->name]);
+
+        RoleConfig::where('role_name', $oldName)->update(['role_name' => $request->name]);
+
+        Log::info("Role '{$oldName}' renamed to '{$request->name}' by admin " . auth()->id());
 
         return response()->json([
             'success' => true,
             'message' => 'Role updated.',
+            'data'    => $this->formatRole($role->fresh()->load('permissions'), $this->userCountsByRole()),
         ]);
     }
 
     // ------------------------------------------------------------------
     // POST /api/v1/admin/roles/{id}/clone
-    // Screen 11 — Clone a role with all its permissions
-    // Body: { "new_name": "merchant_admin_readonly" }
     // ------------------------------------------------------------------
     public function clone(Request $request, int $id)
     {
-        $request->validate([
-            'new_name' => 'required|string|max:100|unique:roles,name',
-        ]);
+        $guard = $this->apiGuard();
+        $sourceRole = $this->findApiRole($id);
 
-        $sourceRole = Role::with('permissions')->findOrFail($id);
+        $request->validate([
+            'new_name' => [
+                'required',
+                'string',
+                'max:100',
+                'regex:/^[a-z][a-z0-9_]*$/',
+                Rule::unique('roles', 'name')->where('guard_name', $guard),
+                Rule::notIn(RbacCatalog::builtinRoles()),
+            ],
+        ]);
 
         $newRole = Role::create([
             'name'       => $request->new_name,
-            'guard_name' => 'api',
+            'guard_name' => $guard,
         ]);
 
-        // Copy all permissions from source role
         $newRole->syncPermissions($sourceRole->permissions);
+
+        RoleConfig::firstOrCreate(
+            ['role_name' => $newRole->name],
+            [
+                'allowlist'                => [],
+                'denylist'                 => [],
+                'concurrent_session_limit' => 5,
+            ]
+        );
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $newRole->load('permissions');
 
         Log::info("Role '{$sourceRole->name}' cloned as '{$newRole->name}' by admin " . auth()->id());
 
@@ -158,31 +239,32 @@ class RoleController extends Controller
             'success' => true,
             'message' => "Role cloned as '{$newRole->name}'.",
             'data'    => [
-                'id'              => $newRole->id,
-                'name'            => $newRole->name,
-                'cloned_from'     => $sourceRole->name,
+                'cloned_from'        => $sourceRole->name,
                 'permissions_copied' => $sourceRole->permissions->count(),
+                'role'               => $this->formatRole($newRole, $this->userCountsByRole()),
             ],
         ], 201);
     }
 
     // ------------------------------------------------------------------
     // DELETE /api/v1/admin/roles/{id}
-    // Screen 11 — Archive (soft delete) a role
     // ------------------------------------------------------------------
-    public function archive(Request $request, int $id)
+    public function archive(int $id)
     {
-        $role = Role::findOrFail($id);
+        $role = $this->findApiRole($id);
 
-        $builtIn = ['super_admin', 'merchant_admin', 'store_manager', 'sales_exec', 'lender_ops', 'risk_user', 'customer'];
-        if (in_array($role->name, $builtIn)) {
+        if (RbacCatalog::isBuiltinRole($role->name)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Built-in roles cannot be archived.',
             ], 422);
         }
 
-        $userCount = $role->users()->count();
+        $userCount = (int) DB::table('model_has_roles')
+            ->where('role_id', $role->id)
+            ->where('model_type', User::class)
+            ->count();
+
         if ($userCount > 0) {
             return response()->json([
                 'success'    => false,
@@ -191,93 +273,105 @@ class RoleController extends Controller
             ], 422);
         }
 
+        $roleName = $role->name;
         $role->delete();
+        RoleConfig::where('role_name', $roleName)->delete();
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         return response()->json([
             'success' => true,
-            'message' => "Role '{$role->name}' archived.",
+            'message' => "Role '{$roleName}' archived.",
         ]);
     }
 
     // ------------------------------------------------------------------
     // GET /api/v1/admin/permissions
-    // Screen 12 — Full permission matrix (all roles x all permissions)
     // ------------------------------------------------------------------
     public function permissionMatrix()
     {
-        $roles       = Role::with('permissions')->where('guard_name', 'api')->get();
-        $permissions = Permission::where('guard_name', 'api')->get();
+        $roles = Role::with('permissions')
+            ->where('guard_name', $this->apiGuard())
+            ->orderBy('name')
+            ->get();
 
-        // Group permissions by module
-        $modules = [
-            'Authentication'  => ['login', 'logout'],
-            'Profile'         => ['view_profile', 'edit_profile', 'change_password', 'setup_mfa'],
-            'Notifications'   => ['view_notifications', 'manage_notifications'],
-            'Users'           => ['view_users', 'create_users', 'edit_users', 'delete_users'],
-            'Roles'           => ['view_roles', 'create_roles', 'edit_roles', 'delete_roles'],
-            'Sessions'        => ['view_sessions', 'revoke_sessions'],
-        ];
+        $permissions = Permission::where('guard_name', $this->apiGuard())
+            ->orderBy('name')
+            ->get();
 
         $matrix = [];
-        foreach ($modules as $module => $modulePermissions) {
+
+        foreach (RbacCatalog::modules() as $module => $modulePermissionNames) {
             $row = ['module' => $module, 'permissions' => []];
-            foreach ($modulePermissions as $permName) {
+
+            foreach ($modulePermissionNames as $permName) {
+                $permission = $permissions->firstWhere('name', $permName);
+
+                if (!$permission) {
+                    continue;
+                }
+
                 $permRow = ['permission' => $permName, 'roles' => []];
+
                 foreach ($roles as $role) {
                     $permRow['roles'][$role->name] = $role->permissions->contains('name', $permName);
                 }
+
                 $row['permissions'][] = $permRow;
             }
-            $matrix[] = $row;
+
+            if (!empty($row['permissions'])) {
+                $matrix[] = $row;
+            }
         }
 
         return response()->json([
             'success'     => true,
-            'roles'       => $roles->pluck('name'),
+            'roles'       => $roles->pluck('name')->values(),
+            'permissions' => $permissions->map(fn (Permission $p) => [
+                'name'   => $p->name,
+                'module' => RbacCatalog::moduleForPermission($p->name),
+            ])->values(),
             'matrix'      => $matrix,
         ]);
     }
 
     // ------------------------------------------------------------------
     // PUT /api/v1/admin/permissions/roles/{id}
-    // Screen 12 — Update permissions for a role
-    // Body: { "permissions": ["view_users", "create_users"] }
     // ------------------------------------------------------------------
     public function updatePermissions(Request $request, int $id)
     {
         $request->validate([
             'permissions'   => 'required|array',
-            'permissions.*' => 'string|exists:permissions,name',
+            'permissions.*' => ['string', Rule::in(RbacCatalog::allPermissionNames())],
         ]);
 
-        $role = Role::findOrFail($id);
-
-        // Save old permissions for audit/rollback
+        $role = $this->findApiRole($id);
         $oldPermissions = $role->permissions->pluck('name')->toArray();
 
-        // Persistent database audit trail with snapshot backup
         AuditLog::create([
-            'user_id' => auth()->id(),
-            'action' => 'role_permissions_update',
-            'module' => 'roles',
+            'user_id'    => auth()->id(),
+            'action'     => 'role_permissions_update',
+            'module'     => 'roles',
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
-            'payload' => [
-                'role_id' => $role->id,
-                'role_name' => $role->name,
-                'old_permissions' => $oldPermissions,
-                'new_permissions' => $request->permissions,
+            'payload'    => [
+                'role_id'           => $role->id,
+                'role_name'         => $role->name,
+                'old_permissions'   => $oldPermissions,
+                'new_permissions'   => $request->permissions,
             ],
+            'created_at' => now(),
         ]);
 
-        // Apply new permissions
-        $role->syncPermissions($request->permissions);
+        $this->syncRolePermissions($role, $request->permissions);
 
         Log::info("Permissions updated for role '{$role->name}' by admin " . auth()->id());
 
         return response()->json([
             'success'         => true,
             'message'         => "Permissions updated for '{$role->name}'.",
+            'data'            => $this->formatRole($role->fresh()->load('permissions'), $this->userCountsByRole()),
             'old_permissions' => $oldPermissions,
             'new_permissions' => $request->permissions,
         ]);
@@ -285,27 +379,20 @@ class RoleController extends Controller
 
     // ------------------------------------------------------------------
     // GET /api/v1/admin/permissions/roles/{id}/diff/{compareId}
-    // Screen 12 — Compare permissions of two roles side by side
     // ------------------------------------------------------------------
     public function diffRoles(int $id, int $compareId)
     {
-        $role1 = Role::with('permissions')->findOrFail($id);
-        $role2 = Role::with('permissions')->findOrFail($compareId);
+        $role1 = $this->findApiRole($id);
+        $role2 = $this->findApiRole($compareId);
 
         $perms1 = $role1->permissions->pluck('name')->toArray();
         $perms2 = $role2->permissions->pluck('name')->toArray();
 
         return response()->json([
             'success' => true,
-            'data' => [
-                'role1' => [
-                    'name'        => $role1->name,
-                    'permissions' => $perms1,
-                ],
-                'role2' => [
-                    'name'        => $role2->name,
-                    'permissions' => $perms2,
-                ],
+            'data'    => [
+                'role1'         => ['id' => $role1->id, 'name' => $role1->name, 'permissions' => $perms1],
+                'role2'         => ['id' => $role2->id, 'name' => $role2->name, 'permissions' => $perms2],
                 'only_in_role1' => array_values(array_diff($perms1, $perms2)),
                 'only_in_role2' => array_values(array_diff($perms2, $perms1)),
                 'common'        => array_values(array_intersect($perms1, $perms2)),
@@ -315,51 +402,51 @@ class RoleController extends Controller
 
     // ------------------------------------------------------------------
     // POST /api/v1/admin/permissions/roles/{id}/rollback
-    // Screen 12 — Rollback to previous permission matrix
     // ------------------------------------------------------------------
     public function rollback(int $id)
     {
-        // Find latest update audit log record for this role to get backup snapshot
+        $role = $this->findApiRole($id);
+
         $latestAudit = AuditLog::where('action', 'role_permissions_update')
             ->where('module', 'roles')
-            ->where('payload->role_id', $id)
-            ->orderBy('id', 'desc')
+            ->where('payload->role_id', $role->id)
+            ->orderByDesc('id')
             ->first();
 
-        if (!$latestAudit || !isset($latestAudit->payload['old_permissions'])) {
+        if (!$latestAudit || empty($latestAudit->payload['old_permissions'])) {
             return response()->json([
                 'success' => false,
-                'message' => 'No previous database-backed backup found for this role.',
+                'message' => 'No previous permission snapshot found for this role.',
             ], 404);
         }
 
-        $role = Role::findOrFail($id);
         $restoredPermissions = $latestAudit->payload['old_permissions'];
-        
-        // Log rollback event in DB
+
         AuditLog::create([
-            'user_id' => auth()->id(),
-            'action' => 'role_permissions_rollback',
-            'module' => 'roles',
+            'user_id'    => auth()->id(),
+            'action'     => 'role_permissions_rollback',
+            'module'     => 'roles',
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
-            'payload' => [
-                'role_id' => $role->id,
-                'role_name' => $role->name,
-                'restored_permissions' => $restoredPermissions,
-                'rolled_back_from_audit_id' => $latestAudit->id,
+            'payload'    => [
+                'role_id'                => $role->id,
+                'role_name'              => $role->name,
+                'restored_permissions'   => $restoredPermissions,
+                'rolled_back_from_audit' => $latestAudit->id,
             ],
+            'created_at' => now(),
         ]);
 
-        $role->syncPermissions($restoredPermissions);
+        $this->syncRolePermissions($role, $restoredPermissions);
 
-        Log::info("Permissions ROLLED BACK for role '{$role->name}' by admin " . auth()->id());
+        Log::info("Permissions rolled back for role '{$role->name}' by admin " . auth()->id());
 
         return response()->json([
-            'success'             => true,
-            'message'             => "Permissions rolled back to previous state.",
+            'success'              => true,
+            'message'              => 'Permissions rolled back to previous state.',
+            'data'                 => $this->formatRole($role->fresh()->load('permissions'), $this->userCountsByRole()),
             'restored_permissions' => $restoredPermissions,
-            'backup_was_from'     => $latestAudit->created_at->toISOString(),
+            'backup_was_from'      => $latestAudit->created_at?->toIso8601String(),
         ]);
     }
 }

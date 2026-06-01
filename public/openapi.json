@@ -39,56 +39,7 @@
         }
       }
     },
-    "/api/v1/auth/sso/google": {
-      "post": {
-        "summary": "Google SSO Authentication",
-        "description": "Authenticates users via Google ID token.",
-        "tags": ["1. Authentication"],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["id_token"],
-                "properties": {
-                  "id_token": { "type": "string", "example": "google_token_here" },
-                  "email": { "type": "string", "example": "superadmin@finz.com" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "SSO Auth successful." }
-        }
-      }
-    },
-    "/api/v1/auth/sso/microsoft": {
-      "post": {
-        "summary": "Microsoft SSO Authentication",
-        "description": "Authenticates users via Microsoft ID token.",
-        "tags": ["1. Authentication"],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["id_token"],
-                "properties": {
-                  "id_token": { "type": "string", "example": "microsoft_token_here" },
-                  "email": { "type": "string", "example": "superadmin@finz.com" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "SSO Auth successful." }
-        }
-      }
-    },
+
     "/api/v1/auth/mfa/verify": {
       "post": {
         "summary": "Verify MFA Code",
@@ -125,16 +76,7 @@
         }
       }
     },
-    "/api/v1/auth/refresh": {
-      "post": {
-        "summary": "Refresh JWT Token",
-        "tags": ["1. Authentication"],
-        "security": [{ "bearerAuth": [] }],
-        "responses": {
-          "200": { "description": "Token refreshed successfully." }
-        }
-      }
-    },
+
     "/api/v1/auth/logout": {
       "post": {
         "summary": "Logout Admin",
@@ -249,89 +191,6 @@
         },
         "responses": {
           "200": { "description": "Profile updated successfully." }
-        }
-      }
-    },
-    "/api/v1/admin/profile/change-password": {
-      "put": {
-        "summary": "Change Profile Password",
-        "description": "Changes user password. Restricts password reuse against the last 5 passwords.",
-        "tags": ["2. Personal Profile"],
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["current_password", "new_password", "new_password_confirmation"],
-                "properties": {
-                  "current_password": { "type": "string", "example": "password" },
-                  "new_password": { "type": "string", "example": "SecurePass99!" },
-                  "new_password_confirmation": { "type": "string", "example": "SecurePass99!" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Password updated successfully." }
-        }
-      }
-    },
-    "/api/v1/admin/profile/mfa-setup": {
-      "put": {
-        "summary": "MFA Activation / Deactivation",
-        "tags": ["2. Personal Profile"],
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": ["action"],
-                "properties": {
-                  "action": { "type": "string", "enum": ["enable", "disable", "change_channel"], "example": "enable" },
-                  "channel": { "type": "string", "enum": ["email", "totp"], "example": "totp" },
-                  "otp_confirm": { "type": "string", "example": "123456" }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "MFA Setup updated." }
-        }
-      }
-    },
-    "/api/v1/admin/profile/preferences": {
-      "put": {
-        "summary": "Update Theme & Timezone Preferences",
-        "tags": ["2. Personal Profile"],
-        "security": [{ "bearerAuth": [] }],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "theme": { "type": "string", "example": "dark" },
-                  "timezone": { "type": "string", "example": "Asia/Kolkata" },
-                  "notification_channels": {
-                    "type": "object",
-                    "properties": {
-                      "in_app": { "type": "boolean", "example": true },
-                      "email": { "type": "boolean", "example": true }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": { "description": "Preferences saved." }
         }
       }
     },
@@ -726,14 +585,63 @@
     },
     "/api/v1/admin/users/{id}/reset-password": {
       "post": {
-        "summary": "Super Admin Force Password Reset",
+        "summary": "Request Password Reset Verification Code",
+        "description": "Super Admin only. Path id is the target user whose password will be reset. The email field must be the Super Admin's own login email — the verification code is sent there.",
         "tags": ["7. User Management"],
         "security": [{ "bearerAuth": [] }],
         "parameters": [
-          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "description": "ID of the target user whose password will be reset" }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": { "type": "string", "format": "email", "example": "superadmin@finz.com", "description": "Super Admin login email (must match authenticated user)" }
+                }
+              }
+            }
+          }
+        },
         "responses": {
-          "200": { "description": "Password reset credentials emailed." }
+          "200": { "description": "Verification code sent to Super Admin email." },
+          "403": { "description": "Only Super Admin can perform this action." },
+          "422": { "description": "Email does not match Super Admin login email." }
+        }
+      }
+    },
+    "/api/v1/admin/users/{id}/change-password": {
+      "put": {
+        "summary": "Change User Password",
+        "description": "Super Admin only. Path id is the target user. Sets a new password using the verification code sent to the Super Admin's email from reset-password.",
+        "tags": ["7. User Management"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" }, "description": "ID of the target user whose password will be changed" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["verification_code", "new_password", "new_password_confirmation"],
+                "properties": {
+                  "verification_code": { "type": "string", "example": "123456", "description": "6-digit code sent to Super Admin email" },
+                  "new_password": { "type": "string", "example": "SecurePass99!" },
+                  "new_password_confirmation": { "type": "string", "example": "SecurePass99!" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Password changed successfully for target user." },
+          "403": { "description": "Only Super Admin can perform this action." },
+          "422": { "description": "Invalid or expired verification code." }
         }
       }
     },
@@ -789,6 +697,7 @@
       },
       "post": {
         "summary": "Define Custom Role",
+        "description": "Creates a custom role (lowercase_with_underscores). Optional permissions must match the RBAC catalog (run php artisan db:seed --class=RbacSeeder).",
         "tags": ["8. Role Management"],
         "security": [{ "bearerAuth": [] }],
         "requestBody": {
@@ -800,14 +709,19 @@
                 "required": ["name"],
                 "properties": {
                   "name": { "type": "string", "example": "finance_ops" },
-                  "permissions": { "type": "array", "items": { "type": "string" }, "example": ["view_users"] }
+                  "permissions": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "example": ["view_users", "view_roles", "edit_users"]
+                  }
                 }
               }
             }
           }
         },
         "responses": {
-          "201": { "description": "Role defined successfully." }
+          "201": { "description": "Custom role created with permissions." },
+          "422": { "description": "Invalid name, reserved built-in name, or unknown permission." }
         }
       }
     },
@@ -890,10 +804,11 @@
     "/api/v1/admin/permissions": {
       "get": {
         "summary": "Get Permissions Grid Matrix",
+        "description": "Returns roles, all catalog permissions (with module), and a side-by-side matrix of role-permission assignments.",
         "tags": ["9. Permission Matrix"],
         "security": [{ "bearerAuth": [] }],
         "responses": {
-          "200": { "description": "Full side-by-side RBAC Matrix." }
+          "200": { "description": "Full RBAC matrix from database." }
         }
       }
     },
@@ -914,7 +829,11 @@
                 "type": "object",
                 "required": ["permissions"],
                 "properties": {
-                  "permissions": { "type": "array", "items": { "type": "string" }, "example": ["view_users"] }
+                  "permissions": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "example": ["view_users", "edit_profile", "view_roles"]
+                  }
                 }
               }
             }

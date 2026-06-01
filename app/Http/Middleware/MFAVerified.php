@@ -36,19 +36,7 @@ class MFAVerified
             ], 401);
         }
 
-        // If neither global MFA nor user-level MFA is enabled, let them through
-        $globalMfaEnabled = Cache::get('global_mfa_enabled', false);
-        if (!$globalMfaEnabled && !$user->mfa_enabled) {
-            return $next($request);
-        }
-
-        // Check if there is a trusted device cookie bypassing MFA
-        $cookieName = 'mfa_bypass_' . $user->id;
-        if ($request->hasCookie($cookieName) && $request->cookie($cookieName) === 'true') {
-            return $next($request);
-        }
-
-        // MFA is enabled — check if they've verified it recently
+        // MFA is permanently enabled — check if they've verified it recently
         if (!$user->hasMFAVerifiedThisSession()) {
             return response()->json([
                 'success'      => false,

@@ -3,12 +3,18 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Mail\PasswordResetCode;
 use App\Models\User;
 use App\Models\AdminNotification;
 use App\Models\AuditLog;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
 
@@ -25,6 +31,21 @@ use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
+    private function ensureSuperAdmin(): ?JsonResponse
+    {
+        /** @var User|null $admin */
+        $admin = Auth::user();
+
+        if (!in_array($admin->role, ['superadmin', 'super_admin'], true)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Only Super Admin can perform this action.',
+            ], 403);
+        }
+
+        return null;
+    }
+
     // ------------------------------------------------------------------
     // GET /api/v1/admin/users
     // Screen 09 — List all users with filters
@@ -265,26 +286,161 @@ class UserController extends Controller
 
     // ------------------------------------------------------------------
     // POST /api/v1/admin/users/{id}/reset-password
-    // Force password reset — sends new temp password to user's email
+    // Super Admin requests a verification code to reset any user's password
     // ------------------------------------------------------------------
-    public function resetPassword(int $id)
+    public function resetPassword(Request $request, int $id)
     {
-        $user         = User::findOrFail($id);
-        $tempPassword = Str::random(12) . '@1';
+        if ($denied = $this->ensureSuperAdmin()) {
+            return $denied;
+        }
 
-        $user->update([
-            'password'            => Hash::make($tempPassword),
-            'password_changed_at' => null, // force change on next login
+        /** @var User|null $admin */
+        $admin = Auth::user();
+        $targetUser = User::findOrFail($id);
+
+        $request->validate([
+            'email' => 'required|email',
         ]);
 
-        // Send email with new temp password
-        $this->sendPasswordResetEmail($user, $tempPassword);
+        if ($admin->email !== $request->email) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Email must match your Super Admin login email.',
+            ], 422);
+        }
 
-        Log::info("Password reset for user {$user->id} by admin " . auth()->id());
+        DB::table('password_reset_tokens')
+            ->where('email', $admin->email)
+            ->delete();
+
+        $code = sprintf('%06d', random_int(0, 999999));
+
+        DB::table('password_reset_tokens')->insert([
+            'email'      => $admin->email,
+            'token'      => Hash::make($code),
+            'created_at' => now()->toIso8601String(),
+        ]);
+
+        Cache::put(
+            'admin_user_password_reset:' . $admin->id,
+            $targetUser->id,
+            now()->addMinutes(15)
+        );
+
+        Mail::to($admin->email)->send(new PasswordResetCode($admin->name, $code));
+
+        Log::info("Password reset verification code sent to super admin {$admin->id} for target user {$targetUser->id}");
+
+        return response()->json([
+            'success'            => true,
+            'message'            => 'Verification code sent to ' . $admin->email,
+            'target_user_id'     => $targetUser->id,
+            'target_user_email'  => $targetUser->email,
+            'expires_in_minutes' => 15,
+        ]);
+    }
+
+    // ------------------------------------------------------------------
+    // PUT /api/v1/admin/users/{id}/change-password
+    // Super Admin sets a new password for any user using the verification code
+    // ------------------------------------------------------------------
+    public function changePassword(Request $request, int $id)
+    {
+        if ($denied = $this->ensureSuperAdmin()) {
+            return $denied;
+        }
+
+        /** @var User|null $admin */
+        $admin = Auth::user();
+        $targetUser = User::findOrFail($id);
+
+        $cachedTargetId = Cache::get('admin_user_password_reset:' . $admin->id);
+
+        if (!$cachedTargetId || (int) $cachedTargetId !== $id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No pending password reset for this user. Please request a verification code first.',
+            ], 422);
+        }
+
+        $request->validate([
+            'verification_code'         => 'required|string|size:6',
+            'new_password'              => [
+                'required',
+                'string',
+                'min:8',
+                'confirmed',
+                'regex:/[A-Z]/',
+                'regex:/[0-9]/',
+                'regex:/[@$!%*?&]/',
+            ],
+            'new_password_confirmation' => 'required|string',
+        ], [
+            'new_password.regex' => 'Password must include uppercase, number, and special character.',
+        ]);
+
+        $resetRecord = DB::table('password_reset_tokens')
+            ->where('email', $admin->email)
+            ->first();
+
+        if (!$resetRecord) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid or expired verification code. Please request a new one.',
+            ], 422);
+        }
+
+        if (\Illuminate\Support\Carbon::parse($resetRecord->created_at)->addMinutes(15)->isPast()) {
+            DB::table('password_reset_tokens')->where('email', $admin->email)->delete();
+            Cache::forget('admin_user_password_reset:' . $admin->id);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Verification code has expired. Please request a new one.',
+                'code'    => 'token_expired',
+            ], 422);
+        }
+
+        if (!Hash::check($request->verification_code, $resetRecord->token)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid verification code.',
+            ], 422);
+        }
+
+        $pastPasswords = $targetUser->passwordHistories()->orderBy('created_at', 'desc')->take(5)->get();
+        foreach ($pastPasswords as $pastPassword) {
+            if (Hash::check($request->new_password, $pastPassword->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You cannot reuse any of your last 5 passwords.',
+                    'code'    => 'password_reuse_blocked',
+                ], 422);
+            }
+        }
+
+        $targetUser->update([
+            'password'            => Hash::make($request->new_password),
+            'password_changed_at' => now(),
+        ]);
+
+        $targetUser->passwordHistories()->create([
+            'password' => Hash::make($request->new_password),
+        ]);
+
+        DB::table('password_reset_tokens')->where('email', $admin->email)->delete();
+        Cache::forget('admin_user_password_reset:' . $admin->id);
+
+        $targetUser->sessions()->where('is_active', true)->update([
+            'is_active'     => false,
+            'logged_out_at' => now(),
+        ]);
+
+        Log::info("Password changed for user {$targetUser->id} by super admin {$admin->id}");
 
         return response()->json([
             'success' => true,
-            'message' => 'Password reset. New credentials sent to ' . $user->email,
+            'message' => 'Password changed successfully for ' . $targetUser->email . '.',
         ]);
     }
 
@@ -430,20 +586,6 @@ class UserController extends Controller
                         <p><b>Temporary Password:</b> {$tempPassword}</p>
                         <p>Please login and change your password immediately.</p>
                         <p>Login URL: " . config('app.frontend_url') . "</p>
-                    ");
-        });
-    }
-
-    private function sendPasswordResetEmail(User $user, string $tempPassword): void
-    {
-        \Illuminate\Support\Facades\Mail::send([], [], function ($message) use ($user, $tempPassword) {
-            $message->to($user->email)
-                    ->subject('FinZ — Your Password Has Been Reset')
-                    ->html("
-                        <h2>Password Reset — FinZ Admin</h2>
-                        <p>Your password has been reset by the Super Admin.</p>
-                        <p><b>New Temporary Password:</b> {$tempPassword}</p>
-                        <p>Please login and change this password immediately.</p>
                     ");
         });
     }
