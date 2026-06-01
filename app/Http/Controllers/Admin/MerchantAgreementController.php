@@ -2,22 +2,43 @@
 
 namespace App\Http\Controllers\Admin;
 
+use OpenApi\Attributes as OA;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\MerchantAgreement;
+use App\Models\Merchant;
 
 class MerchantAgreementController extends Controller
 {
-    public function generate(Request $request, $merchantId)
+    #[OA\Post(
+        path: "/api/v1/admin/merchants/{id}/agreement",
+        summary: "Generate Merchant Agreement",
+        security: [["sanctum" => []]],
+        tags: ["MerchantAgreement"],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
+    public function generate(Request $request, $id)
     {
-        // Screen 17 - Merchant Agreement Management
-        // Logic to generate PDF from template and save agreement
+        $merchant = Merchant::findOrFail($id);
+        
+        // Implementation: Generate Agreement Record
+        $version = MerchantAgreement::where('merchant_id', $id)->count() + 1;
+        
         $agreement = MerchantAgreement::create([
-            'merchant_id' => $merchantId,
+            'merchant_id' => $merchant->id,
             'status' => 'Generated',
-            'version' => 1
+            'version' => $version
         ]);
         
-        return response()->json(['message' => 'Agreement generated successfully', 'agreement' => $agreement]);
+        return response()->json([
+            'message' => 'Agreement generated successfully', 
+            'agreement' => $agreement,
+            'download_url' => url("/api/v1/admin/merchants/{$id}/agreement/{$agreement->id}/download")
+        ]);
     }
 }

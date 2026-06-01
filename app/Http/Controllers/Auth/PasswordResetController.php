@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use OpenApi\Attributes as OA;
 
 /*
 |--------------------------------------------------------------------------
@@ -34,6 +35,22 @@ class PasswordResetController extends Controller
     // ------------------------------------------------------------------
     // POST /api/v1/auth/forgot-password
     // ------------------------------------------------------------------
+    #[OA\Post(
+        path: "/api/v1/auth/forgot-password",
+        summary: "Send Password Reset Link",
+        tags: ["Auth"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "email", type: "string", format: "email", example: "finzwork10@gmail.com")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
     public function sendResetLink(Request $request)
     {
         $request->validate([
@@ -81,16 +98,41 @@ class PasswordResetController extends Controller
                     ->subject('FinZ Admin — Password Reset Request');
         });
 
-        return response()->json([
+        $response = [
             'success' => true,
             'message' => 'If this email exists, a reset link has been sent.',
             'expires_in_minutes' => 15,
-        ]);
+        ];
+
+        if (app()->environment('local')) {
+            $response['debug_token'] = $token;
+        }
+
+        return response()->json($response);
     }
 
     // ------------------------------------------------------------------
     // POST /api/v1/auth/reset-password
     // ------------------------------------------------------------------
+    #[OA\Post(
+        path: "/api/v1/auth/reset-password",
+        summary: "Reset Password",
+        tags: ["Auth"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "email", type: "string", format: "email", example: "finzwork10@gmail.com"),
+                    new OA\Property(property: "token", type: "string", example: "your-reset-token-here"),
+                    new OA\Property(property: "password", type: "string", format: "password", example: "New@password123"),
+                    new OA\Property(property: "password_confirmation", type: "string", format: "password", example: "New@password123")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
     public function resetPassword(Request $request)
     {
         $request->validate([

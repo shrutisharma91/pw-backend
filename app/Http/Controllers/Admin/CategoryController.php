@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use OpenApi\Attributes as OA;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
@@ -10,12 +11,39 @@ use Illuminate\Support\Str;
 
 class CategoryController extends Controller
 {
+    #[OA\Get(
+        path: "/api/v1/admin/categories",
+        summary: "List Categories",
+        security: [["sanctum" => []]],
+        tags: ["Category"],
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
     public function index()
     {
         $categories = Category::with('children')->whereNull('parent_id')->get();
         return response()->json($categories);
     }
 
+    #[OA\Post(
+        path: "/api/v1/admin/categories",
+        summary: "Create Category",
+        security: [["sanctum" => []]],
+        tags: ["Category"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "name", type: "string", example: "Electronics"),
+                    new OA\Property(property: "parent_id", type: "integer", example: null)
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 201, description: "Success")
+        ]
+    )]
     public function store(Request $request)
     {
         $request->validate([
@@ -32,6 +60,27 @@ class CategoryController extends Controller
         return response()->json($category, 201);
     }
 
+    #[OA\Put(
+        path: "/api/v1/admin/categories/{id}",
+        summary: "Update Category",
+        security: [["sanctum" => []]],
+        tags: ["Category"],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "name", type: "string", example: "Smartphones"),
+                    new OA\Property(property: "parent_id", type: "integer", example: 1)
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
     public function update(Request $request, $id)
     {
         $category = Category::findOrFail($id);
@@ -53,6 +102,26 @@ class CategoryController extends Controller
         return response()->json($category);
     }
 
+    #[OA\Post(
+        path: "/api/v1/admin/categories/{id}/archive",
+        summary: "Archive Category",
+        security: [["sanctum" => []]],
+        tags: ["Category"],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "reassign_to", type: "integer", example: 2)
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
     public function archive(Request $request, $id)
     {
         $category = Category::findOrFail($id);
@@ -73,6 +142,27 @@ class CategoryController extends Controller
         return response()->json(['message' => 'Category archived successfully']);
     }
 
+    #[OA\Put(
+        path: "/api/v1/admin/categories/{id}/financing-rules",
+        summary: "Set Financing Rules",
+        security: [["sanctum" => []]],
+        tags: ["Category"],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "default_down_payment_percent", type: "number", example: 10.5),
+                    new OA\Property(property: "default_tenure_months", type: "integer", example: 6)
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
     public function setFinancingRules(Request $request, $id)
     {
         $category = Category::findOrFail($id);

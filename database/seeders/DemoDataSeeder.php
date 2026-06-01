@@ -66,5 +66,22 @@ class DemoDataSeeder extends Seeder
             'max_loan_amount' => 500000,
             'api_credentials' => ['key' => 'live_key_123', 'secret' => 'super_secret'],
         ]);
+
+        // Merchant Category
+        \App\Models\MerchantCategory::create([
+            'merchant_id' => $merchant->id,
+            'name' => 'Electronics',
+            'status' => 'Pending'
+        ]);
+
+        // Verification Log
+        \App\Models\VerificationLog::create([
+            'merchant_id' => $merchant->id,
+            'document_type' => 'GST Certificate',
+            'status' => 'Failed',
+            'api_payload' => json_encode(['request' => 'verify_gst']),
+            'api_response' => json_encode(['error' => 'API timeout']),
+            'error_message' => 'Upstream provider timeout'
+        ]);
     }
 }

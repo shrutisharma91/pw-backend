@@ -18,6 +18,9 @@ use App\Http\Controllers\Admin\LenderController;
 use App\Http\Controllers\Admin\LenderWaterfallController;
 use App\Http\Controllers\Admin\LenderRuleController;
 use App\Http\Controllers\Admin\LenderSlaController;
+use App\Http\Controllers\EmiTypeController;
+use App\Http\Controllers\TenureSlabController;
+use App\Http\Controllers\OfferController;
 /*
 |--------------------------------------------------------------------------
 | FinZ LMS — Super Admin API Routes
@@ -169,6 +172,32 @@ Route::prefix('v1')->group(function () {
         Route::prefix('lender-sla')->group(function () {
             Route::get('/metrics', [LenderSlaController::class, 'index']);    // Screen 28
             Route::get('/export', [LenderSlaController::class, 'export']);    // Screen 28
+        });
+
+        // ----- Phase 7: Pricing & Offers -----
+        Route::prefix('pricing')->group(function () {
+            // Screen 29: EMI Master Configuration
+            Route::apiResource('emi-types', EmiTypeController::class);
+            
+            // Screen 30: Tenure & Interest Slabs
+            Route::prefix('tenure-slabs')->group(function () {
+                Route::get('/export', [TenureSlabController::class, 'exportCsv']);
+                Route::post('/import', [TenureSlabController::class, 'importCsv']);
+            });
+            Route::apiResource('tenure-slabs', TenureSlabController::class);
+        });
+
+        Route::prefix('offers')->group(function () {
+            // Screen 31: Offer Engine Builder
+            Route::get('/', [OfferController::class, 'index']);
+            Route::post('/', [OfferController::class, 'store']);
+            Route::get('/{id}', [OfferController::class, 'show']);
+            Route::put('/{id}', [OfferController::class, 'update']);
+            Route::delete('/{id}', [OfferController::class, 'destroy']);
+            
+            // Screen 32: Offer Approval Queue
+            Route::post('/{id}/approve', [OfferController::class, 'approve']);
+            Route::post('/{id}/reject', [OfferController::class, 'reject']);
         });
     });
 });

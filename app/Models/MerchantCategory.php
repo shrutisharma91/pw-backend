@@ -12,7 +12,7 @@ class MerchantCategory extends Model
     protected $fillable = [
         'merchant_id',
         'name',
-        'mapped_category_id',
+        'mapped_category_id'
     ];
 
     public function merchant()
