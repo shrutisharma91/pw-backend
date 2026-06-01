@@ -6,6 +6,7 @@ use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,12 +36,7 @@ class MFAVerified
             ], 401);
         }
 
-        // If MFA is not enabled for this user, let them through
-        if (!$user->mfa_enabled) {
-            return $next($request);
-        }
-
-        // MFA is enabled — check if they've verified it recently
+        // MFA is permanently enabled — check if they've verified it recently
         if (!$user->hasMFAVerifiedThisSession()) {
             return response()->json([
                 'success'      => false,

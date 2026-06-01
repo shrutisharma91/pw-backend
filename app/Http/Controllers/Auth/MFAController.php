@@ -54,13 +54,12 @@ class MFAController extends Controller
         // Stamp MFA verified time on user record
         $user->update(['mfa_verified_at' => now()]);
 
-        // Return the same token + user info (now MFA-verified)
-        return response()->json([
-            'success'    => true,
-            'message'    => 'MFA verified. Welcome to FinZ Admin.',
-            'token'      => JWTAuth::getToken()->get(),
-            'token_type' => 'bearer',
-            'expires_in' => config('jwt.ttl') * 60,
+        $response = response()->json([
+            'success'      => true,
+            'message'      => 'MFA verified. Welcome to FinZ Admin.',
+            'access_token' => JWTAuth::getToken()->get(),
+            'token_type'   => 'bearer',
+            'expires_in'   => config('jwt.ttl') * 60,
             'user' => [
                 'id'       => $user->id,
                 'name'     => $user->name,
@@ -71,6 +70,14 @@ class MFAController extends Controller
                 'photo'    => $user->profile_photo,
             ],
         ]);
+
+        if ($request->boolean('remember_device')) {
+            $cookieName = 'mfa_bypass_' . $user->id;
+            // 43200 minutes = 30 days
+            $response->cookie($cookieName, 'true', 43200, '/', null, false, true);
+        }
+
+        return $response;
     }
 
     // ------------------------------------------------------------------

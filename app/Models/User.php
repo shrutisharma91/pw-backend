@@ -29,6 +29,8 @@ class User extends Authenticatable implements JWTSubject
 
     protected $table = 'users';
 
+    protected $guard_name = 'api';
+
     protected $fillable = [
         'name',
         'email',
@@ -51,11 +53,13 @@ class User extends Authenticatable implements JWTSubject
         'password_changed_at',
         'merchant_id',           // null for super admin
         'store_ids',             // JSON array for store managers
+        'mfa_recovery_codes',
     ];
 
     protected $hidden = [
         'password',
         'mfa_secret',
+        'mfa_recovery_codes',
         'remember_token',
     ];
 
@@ -69,6 +73,7 @@ class User extends Authenticatable implements JWTSubject
         'is_active'              => 'boolean',
         'notification_channels'  => 'array',
         'store_ids'              => 'array',
+        'mfa_recovery_codes'     => 'array',
         'password'               => 'hashed',
     ];
 
@@ -105,9 +110,6 @@ class User extends Authenticatable implements JWTSubject
     // Check if the user has verified MFA in this session
     public function hasMFAVerifiedThisSession(): bool
     {
-        if (!$this->mfa_enabled) {
-            return true; // MFA not required, skip
-        }
         if (!$this->mfa_verified_at) {
             return false;
         }
@@ -144,5 +146,15 @@ class User extends Authenticatable implements JWTSubject
     public function notifications()
     {
         return $this->hasMany(AdminNotification::class);
+    }
+
+    public function passwordHistories()
+    {
+        return $this->hasMany(PasswordHistory::class);
+    }
+
+    public function auditLogs()
+    {
+        return $this->hasMany(AuditLog::class);
     }
 }

@@ -1,0 +1,10 @@
+﻿python : Traceback (most recent call last):
+At line:1 char:1
++ python d:\pw-backend\laravel-pw\extract_pdf.py 2>&1 | Out-File -Encod ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last)::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  File "d:\pw-backend\laravel-pw\extract_pdf.py", line 1, in <module>
+    from PyPDF2 import PdfReader
+ModuleNotFoundError: No module named 'PyPDF2'
