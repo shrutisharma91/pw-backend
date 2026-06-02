@@ -71,6 +71,25 @@ class MergeSwaggerDocs extends Command
             }
         }
 
+        // Unify security schemes: Replace 'bearerAuth' (Phase 1-3) with 'sanctum' (Phase 4-7)
+        foreach ($generatedDocs['paths'] as $path => &$methods) {
+            foreach ($methods as $method => &$operation) {
+                if (isset($operation['security'])) {
+                    foreach ($operation['security'] as &$securityRequirement) {
+                        if (isset($securityRequirement['bearerAuth'])) {
+                            $securityRequirement['sanctum'] = $securityRequirement['bearerAuth'];
+                            unset($securityRequirement['bearerAuth']);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Remove legacy bearerAuth from components so only sanctum shows up
+        if (isset($generatedDocs['components']['securitySchemes']['bearerAuth'])) {
+            unset($generatedDocs['components']['securitySchemes']['bearerAuth']);
+        }
+
         // Save merged JSON back to the generated path so Swagger UI serves it
         File::put($generatedPath, json_encode($generatedDocs, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
