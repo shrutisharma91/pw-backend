@@ -8,6 +8,7 @@ use App\Services\MFAService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
+use OpenApi\Attributes as OA;
 
 /*
 |--------------------------------------------------------------------------
@@ -33,6 +34,23 @@ class MFAController extends Controller
     // ------------------------------------------------------------------
     // POST /api/v1/auth/mfa/verify
     // ------------------------------------------------------------------
+    #[OA\Post(
+        path: "/api/v1/auth/mfa/verify",
+        summary: "Verify MFA OTP",
+        security: [["sanctum" => []]],
+        tags: ["Auth"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "otp", type: "string", example: "123456")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
     public function verify(Request $request)
     {
         $request->validate([
@@ -83,6 +101,15 @@ class MFAController extends Controller
     // ------------------------------------------------------------------
     // POST /api/v1/auth/mfa/resend
     // ------------------------------------------------------------------
+    #[OA\Post(
+        path: "/api/v1/auth/mfa/resend",
+        summary: "Resend MFA OTP",
+        security: [["sanctum" => []]],
+        tags: ["Auth"],
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
     public function resend(Request $request)
     {
         /** @var User|null $user */

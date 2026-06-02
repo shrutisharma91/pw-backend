@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Cache;
 use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
+use OpenApi\Attributes as OA;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,6 +36,23 @@ class LoginController extends Controller
     // ------------------------------------------------------------------
     // POST /api/v1/auth/login
     // ------------------------------------------------------------------
+    #[OA\Post(
+        path: "/api/v1/auth/login",
+        summary: "Login Admin",
+        tags: ["Auth"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "email", type: "string", format: "email", example: "finzwork10@gmail.com"),
+                    new OA\Property(property: "password", type: "string", format: "password", example: "New@password123")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
     public function login(Request $request)
     {
         // Step 1: Validate incoming data
@@ -208,6 +226,15 @@ class LoginController extends Controller
     // ------------------------------------------------------------------
     // POST /api/v1/auth/logout
     // ------------------------------------------------------------------
+    #[OA\Post(
+        path: "/api/v1/auth/logout",
+        summary: "Logout Admin",
+        security: [["sanctum" => []]],
+        tags: ["Auth"],
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
     public function logout(Request $request)
     {
         try {
@@ -239,7 +266,35 @@ class LoginController extends Controller
         }
     }
 
-
+    // ------------------------------------------------------------------
+    // POST /api/v1/auth/refresh
+    // ------------------------------------------------------------------
+    #[OA\Post(
+        path: "/api/v1/auth/refresh",
+        summary: "Refresh Token",
+        security: [["sanctum" => []]],
+        tags: ["Auth"],
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
+    public function refresh()
+    {
+        try {
+            $newToken = JWTAuth::refresh(JWTAuth::getToken());
+            return response()->json([
+                'success'    => true,
+                'token'      => $newToken,
+                'token_type' => 'bearer',
+                'expires_in' => config('jwt.ttl') * 60,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Token refresh failed. Please login again.',
+            ], 401);
+        }
+    }
 
     // ------------------------------------------------------------------
     // Private helper: log login session to admin_sessions table

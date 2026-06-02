@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RbacSeeder::class,
             UserSeeder::class,
+            DemoDataSeeder::class,
         ]);
     }
 }

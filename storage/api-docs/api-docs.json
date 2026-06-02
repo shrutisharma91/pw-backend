@@ -1,0 +1,2824 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "FinZ LMS API",
+        "description": "API documentation for FinZ LMS backend",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8000",
+            "description": "API Server"
+        }
+    ],
+    "paths": {
+        "/api/v1/admin/brands": {
+            "get": {
+                "tags": [
+                    "Brand"
+                ],
+                "summary": "List Brands",
+                "operationId": "ff8454ccbbb6d618489b0412c012f9fb",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Brand"
+                ],
+                "summary": "Create Brand",
+                "operationId": "48001506a65f0ad47877764af5071353",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Samsung"
+                                    },
+                                    "logo_url": {
+                                        "type": "string",
+                                        "example": "https://example.com/logo.png"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "example": "approved"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/brands/{id}": {
+            "put": {
+                "tags": [
+                    "Brand"
+                ],
+                "summary": "Update Brand",
+                "operationId": "12f6214e31491adb8335143a768f8cbe",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Samsung"
+                                    },
+                                    "logo_url": {
+                                        "type": "string",
+                                        "example": "https://example.com/logo.png"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "example": "approved"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/categories": {
+            "get": {
+                "tags": [
+                    "Category"
+                ],
+                "summary": "List Categories",
+                "operationId": "4da025fbfb5cf18be6ae0db098ef840f",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Category"
+                ],
+                "summary": "Create Category",
+                "operationId": "8d4263cd198e248a43125db61484d355",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Electronics"
+                                    },
+                                    "parent_id": {
+                                        "type": "integer",
+                                        "example": null
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/categories/{id}": {
+            "put": {
+                "tags": [
+                    "Category"
+                ],
+                "summary": "Update Category",
+                "operationId": "2eb132f3c48c43ab7cb6cf1da838cea4",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Smartphones"
+                                    },
+                                    "parent_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/categories/{id}/archive": {
+            "post": {
+                "tags": [
+                    "Category"
+                ],
+                "summary": "Archive Category",
+                "operationId": "fbb70bcaab8ecea3ca167194f357387b",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "reassign_to": {
+                                        "type": "integer",
+                                        "example": 2
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/categories/{id}/financing-rules": {
+            "put": {
+                "tags": [
+                    "Category"
+                ],
+                "summary": "Set Financing Rules",
+                "operationId": "58c53cfeba926be2af31735a87ae1015",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "default_down_payment_percent": {
+                                        "type": "number",
+                                        "example": 10.5
+                                    },
+                                    "default_tenure_months": {
+                                        "type": "integer",
+                                        "example": 6
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/lenders": {
+            "get": {
+                "tags": [
+                    "Lender"
+                ],
+                "summary": "List Lenders",
+                "operationId": "abcf12af9e8a3d8f461911d008929f37",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Lender"
+                ],
+                "summary": "Create Lender",
+                "operationId": "f76aa7524e56e8bce73e43dfbe077c13",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "HDFC Bank"
+                                    },
+                                    "api_base_url": {
+                                        "type": "string",
+                                        "example": "https://api.hdfc.com/v1"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "example": "active"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/lenders/{id}": {
+            "get": {
+                "tags": [
+                    "Lender"
+                ],
+                "summary": "Show Lender",
+                "operationId": "f41f95f58e04848705b513ca19a0e64f",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Lender"
+                ],
+                "summary": "Update Lender",
+                "operationId": "83145d0ede4542d544f4977d12183f5d",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "HDFC Bank"
+                                    },
+                                    "api_base_url": {
+                                        "type": "string",
+                                        "example": "https://api.hdfc.com/v1"
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "example": "active"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/lenders/{id}/toggle": {
+            "post": {
+                "tags": [
+                    "Lender"
+                ],
+                "summary": "Toggle Lender Status",
+                "operationId": "762effe508ad42bc60b0d2466e3de8de",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/lenders/{id}/test-connection": {
+            "post": {
+                "tags": [
+                    "Lender"
+                ],
+                "summary": "Test Lender Connection",
+                "operationId": "e437c0792f20af057194a8d9f5969f89",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/lender-rules": {
+            "get": {
+                "tags": [
+                    "LenderRule"
+                ],
+                "summary": "List Lender Rules",
+                "operationId": "ba6241f562325b5c414f429916343319",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "LenderRule"
+                ],
+                "summary": "Create Lender Rule",
+                "operationId": "2e650f62def4cf61d5defd691bd5bc3e",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Reject Low Credit"
+                                    },
+                                    "lender_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "conditions": {
+                                        "type": "object",
+                                        "example": {
+                                            "credit_score": {
+                                                "<": 600
+                                            }
+                                        }
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "example": "active"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/lender-rules/{id}": {
+            "put": {
+                "tags": [
+                    "LenderRule"
+                ],
+                "summary": "Update Lender Rule",
+                "operationId": "4fb258e2315a1af2cf627723ddc7196a",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Reject Low Credit"
+                                    },
+                                    "lender_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "conditions": {
+                                        "type": "object",
+                                        "example": {
+                                            "credit_score": {
+                                                "<": 650
+                                            }
+                                        }
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "example": "active"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/lender-rules/{id}/archive": {
+            "post": {
+                "tags": [
+                    "LenderRule"
+                ],
+                "summary": "Archive Lender Rule",
+                "operationId": "2acb9e1b63b018ed19c107c8fd221dbb",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/lender-sla/metrics": {
+            "get": {
+                "tags": [
+                    "LenderSla"
+                ],
+                "summary": "Get SLA Metrics",
+                "operationId": "17ab335725fe3ba930e4f438335e0a45",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/lender-sla/export": {
+            "get": {
+                "tags": [
+                    "LenderSla"
+                ],
+                "summary": "Export SLA Metrics to CSV",
+                "operationId": "39bae4fc70d6dc6850bfad59027983f1",
+                "responses": {
+                    "200": {
+                        "description": "CSV File Download"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/lender-waterfalls": {
+            "get": {
+                "tags": [
+                    "LenderWaterfall"
+                ],
+                "summary": "List Lender Waterfalls",
+                "operationId": "9defca5036334d281d83d431341305e6",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "LenderWaterfall"
+                ],
+                "summary": "Create Lender Waterfall",
+                "operationId": "aebc30ecde7276739b0384021001820c",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Tier 1 Priority"
+                                    },
+                                    "priority_order": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "example": [
+                                            1,
+                                            3,
+                                            2
+                                        ]
+                                    },
+                                    "is_active": {
+                                        "type": "boolean",
+                                        "example": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/lender-waterfalls/{id}": {
+            "put": {
+                "tags": [
+                    "LenderWaterfall"
+                ],
+                "summary": "Update Lender Waterfall",
+                "operationId": "60ed45b53b9978ef1f5fe745ce31bfac",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Tier 1 Priority"
+                                    },
+                                    "priority_order": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        },
+                                        "example": [
+                                            1,
+                                            3,
+                                            2
+                                        ]
+                                    },
+                                    "is_active": {
+                                        "type": "boolean",
+                                        "example": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/lender-waterfalls/simulate": {
+            "post": {
+                "tags": [
+                    "LenderWaterfall"
+                ],
+                "summary": "Simulate Lender Waterfall",
+                "operationId": "c7ac400f98bd01be64cfcaa606181872",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "payload": {
+                                        "type": "object",
+                                        "example": {
+                                            "loan_amount": 50000,
+                                            "credit_score": 750,
+                                            "merchant_tier": "Gold"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Simulation Result"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/merchants/{id}/agreement": {
+            "post": {
+                "tags": [
+                    "MerchantAgreement"
+                ],
+                "summary": "Generate Merchant Agreement",
+                "operationId": "660e5f69d897f155d808c187fc26b686",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/merchant-categories/{id}/map": {
+            "post": {
+                "tags": [
+                    "MerchantCategory"
+                ],
+                "summary": "Map Category to Master",
+                "operationId": "0db8af2127a3ade62d1f8ba0c1cde04c",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "mapped_category_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/merchants": {
+            "get": {
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "Get Merchant Directory",
+                "operationId": "181b18fe40c99997daec990e580fdc0c",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "region",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "sales_exec_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "signup_date",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of merchants"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/merchants/{id}": {
+            "get": {
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "Get Merchant Profile",
+                "operationId": "27eecc064465d8a7adcea5690fea5994",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Merchant 360 Profile"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/merchants/{id}/approve": {
+            "post": {
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "Approve Merchant",
+                "operationId": "587f497560bcfddce04175786cd338e2",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "comment": {
+                                        "type": "string",
+                                        "example": "All documents verified."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/merchants/{id}/reject": {
+            "post": {
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "Reject Merchant",
+                "operationId": "eea8686a65a72045d4cd4da2cbe43baa",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "Invalid GST number."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/merchants/bulk-approve": {
+            "post": {
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "Bulk Approve Merchants",
+                "operationId": "d6d7351bd86025e0caf76393e626af58",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "merchant_ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "comment": {
+                                        "type": "string",
+                                        "example": "Bulk approved."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/merchants/bulk-reject": {
+            "post": {
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "Bulk Reject Merchants",
+                "operationId": "bde320af676c2ce8393f1aa6e029c273",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "merchant_ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "Fraudulent applications."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/merchants/export": {
+            "get": {
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "Export Merchants CSV",
+                "operationId": "9a40668eefb3632b2e47e9c25ec7cb0e",
+                "responses": {
+                    "200": {
+                        "description": "CSV Data"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/merchants/{id}/re-kyc": {
+            "post": {
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "Trigger Re-KYC",
+                "operationId": "6bc620753f0bdde3173a9823448b7b34",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "Documents expired."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/merchants/bulk-re-kyc": {
+            "post": {
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "Bulk Trigger Re-KYC",
+                "operationId": "5800a469de5a203371a5e8e57cd89e1a",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "merchant_ids": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "Compliance update."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/merchants/{id}/suspend": {
+            "post": {
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "Suspend Merchant",
+                "operationId": "d009ce92fea07cb0f32b1bd178930b09",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "reason_code": {
+                                        "type": "string",
+                                        "example": "FRAUD_DETECTED"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/merchants/{id}/send-notice": {
+            "post": {
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "Send Notice to Merchant",
+                "operationId": "3173be655d65cd7df3233dd2932736e5",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "notice_text": {
+                                        "type": "string",
+                                        "example": "Please update your bank details."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/merchants/{id}/escalate": {
+            "post": {
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "Escalate Merchant to Risk",
+                "operationId": "ac815d24b0119d6fb8cba6e79a42fc87",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "escalation_reason": {
+                                        "type": "string",
+                                        "example": "High NPA rate observed."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/products": {
+            "get": {
+                "tags": [
+                    "Product"
+                ],
+                "summary": "Get Product Directory",
+                "operationId": "a3526d5de7c223020927853add249d64",
+                "parameters": [
+                    {
+                        "name": "category_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "brand_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/products/{id}/flag": {
+            "post": {
+                "tags": [
+                    "Product"
+                ],
+                "summary": "Flag Product for Review",
+                "operationId": "3f9d3f20c5f1e9de3cd7466ab6482cf5",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/products/{id}/delist": {
+            "post": {
+                "tags": [
+                    "Product"
+                ],
+                "summary": "Delist Product",
+                "operationId": "dbad2e068e12b33ca6cedcef1cf0cb9d",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "IP Infringement"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/products/bulk-financing-toggle": {
+            "post": {
+                "tags": [
+                    "Product"
+                ],
+                "summary": "Bulk Toggle Financing Eligibility",
+                "operationId": "ab62f6ba3e779ecdb742f61e1526be46",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "category_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "financing_eligibility": {
+                                        "type": "boolean",
+                                        "example": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/stores": {
+            "get": {
+                "tags": [
+                    "Store"
+                ],
+                "summary": "Get Store Directory",
+                "operationId": "b9966f57b08e09a1ea97997999c232e3",
+                "parameters": [
+                    {
+                        "name": "cluster",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "region",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/stores/{id}": {
+            "get": {
+                "tags": [
+                    "Store"
+                ],
+                "summary": "Get Store Details",
+                "operationId": "41fbc68718ba7e29931a4c3426fa3487",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/stores/{id}/deactivate": {
+            "post": {
+                "tags": [
+                    "Store"
+                ],
+                "summary": "Deactivate Store",
+                "operationId": "2abc3467199f7edaa03d43d9a783757b",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "Store closure"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/stores/export": {
+            "get": {
+                "tags": [
+                    "Store"
+                ],
+                "summary": "Export Stores CSV",
+                "operationId": "07374123a8e0439e86f781dc2ff905d7",
+                "responses": {
+                    "200": {
+                        "description": "CSV file"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/merchants/{id}/verification-logs": {
+            "get": {
+                "tags": [
+                    "VerificationLog"
+                ],
+                "summary": "Get Verification Logs",
+                "operationId": "04ea5cace51077ecd88c5be1548408cc",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "api_type",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/merchants/{id}/verification-logs/{log_id}/retry": {
+            "post": {
+                "tags": [
+                    "VerificationLog"
+                ],
+                "summary": "Retry Verification Log",
+                "operationId": "bfba0d7218a79d1ef90f309aadd4b3a5",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "log_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auth/login": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Login Admin",
+                "operationId": "202eabfbaee70ce8a63f153b2b2c8824",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "finzwork10@gmail.com"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "New@password123"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/logout": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Logout Admin",
+                "operationId": "ee2caac749caf2a5b5eebeffbe9e4f0b",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auth/refresh": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Refresh Token",
+                "operationId": "679b6591f4fd6ced6d33e5ca6630f97b",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auth/mfa/verify": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Verify MFA OTP",
+                "operationId": "90922a31532658a589125c677a60e036",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "otp": {
+                                        "type": "string",
+                                        "example": "123456"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auth/mfa/resend": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Resend MFA OTP",
+                "operationId": "1ecacef4bb070e6f7ecf26697e46340a",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auth/forgot-password": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Send Password Reset Link",
+                "operationId": "ffa97a1acf47fce6b507c2fe6d44e004",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "finzwork10@gmail.com"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/reset-password": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Reset Password",
+                "operationId": "6df250495fd73e70352e2ceb3555da3f",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "finzwork10@gmail.com"
+                                    },
+                                    "token": {
+                                        "type": "string",
+                                        "example": "your-reset-token-here"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "New@password123"
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "New@password123"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                }
+            }
+        },
+        "/api/v1/admin/pricing/emi-types": {
+            "get": {
+                "tags": [
+                    "EMI Types"
+                ],
+                "summary": "Get all EMI Types",
+                "operationId": "7e33bb0d2d6445474882b46ace2b68a7",
+                "responses": {
+                    "200": {
+                        "description": "A list of EMI Types"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "EMI Types"
+                ],
+                "summary": "Create EMI Type",
+                "operationId": "80aa03bca605cb9d4c3d3a0a38dc48a3",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Standard No Cost EMI"
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "example": "no-cost"
+                                    },
+                                    "min_loan_amount": {
+                                        "type": "number",
+                                        "example": 5000
+                                    },
+                                    "max_loan_amount": {
+                                        "type": "number",
+                                        "example": 100000
+                                    },
+                                    "allowed_merchant_tiers": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "Gold",
+                                            "Silver"
+                                        ]
+                                    },
+                                    "effective_from": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2024-01-01"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/pricing/emi-types/{id}": {
+            "get": {
+                "tags": [
+                    "EMI Types"
+                ],
+                "summary": "Get EMI Type Details",
+                "operationId": "02ce53970df23996eecebd8f4e300e9d",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "EMI Types"
+                ],
+                "summary": "Update EMI Type",
+                "operationId": "e00add6f2288ea8e685d01b66ec140d5",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Standard No Cost EMI Updated"
+                                    },
+                                    "type": {
+                                        "type": "string",
+                                        "example": "no-cost"
+                                    },
+                                    "min_loan_amount": {
+                                        "type": "number",
+                                        "example": 5000
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "EMI Types"
+                ],
+                "summary": "Delete EMI Type",
+                "operationId": "1c1552bd80b3f47e16a8377f66070f94",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Deleted"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/offers": {
+            "get": {
+                "tags": [
+                    "Offer"
+                ],
+                "summary": "List Offers",
+                "operationId": "6c46bb9736a9a00800f196372370fb2f",
+                "parameters": [
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "merchant_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Offer"
+                ],
+                "summary": "Create Offer",
+                "operationId": "834e9c02e219b42528b2b06bd2fef5f5",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "example": "Diwali Special Cashback"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Get 5% cashback up to ₹1000"
+                                    },
+                                    "offer_type": {
+                                        "type": "string",
+                                        "example": "cashback"
+                                    },
+                                    "discount_value": {
+                                        "type": "number",
+                                        "example": 5
+                                    },
+                                    "scope_type": {
+                                        "type": "string",
+                                        "example": "platform"
+                                    },
+                                    "start_date": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "example": "2024-10-01 00:00:00"
+                                    },
+                                    "end_date": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "example": "2024-10-31 23:59:59"
+                                    },
+                                    "budget_cap": {
+                                        "type": "number",
+                                        "example": 500000
+                                    },
+                                    "auto_pause": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "is_platform_offer": {
+                                        "type": "boolean",
+                                        "example": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/offers/{id}": {
+            "get": {
+                "tags": [
+                    "Offer"
+                ],
+                "summary": "Show Offer Details",
+                "operationId": "a39efdd84464c109c8209d8060c84547",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Offer"
+                ],
+                "summary": "Update Offer",
+                "operationId": "7f5ca4fa0b4ab6886dc5f9ec23f760e2",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "title": {
+                                        "type": "string",
+                                        "example": "Diwali Special Cashback (Extended)"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Offer"
+                ],
+                "summary": "Delete Offer",
+                "operationId": "f056b0751e498e23afc00394250b5079",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Deleted"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/offers/{id}/approve": {
+            "post": {
+                "tags": [
+                    "Offer"
+                ],
+                "summary": "Approve Offer",
+                "operationId": "adb8c6dedf1d9cdb6af2ce842ccc8116",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/offers/{id}/reject": {
+            "post": {
+                "tags": [
+                    "Offer"
+                ],
+                "summary": "Reject Offer",
+                "operationId": "698ecca32a1fb15635f015b3861d5e8f",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "Discount value too high."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/pricing/tenure-slabs": {
+            "get": {
+                "tags": [
+                    "TenureSlab"
+                ],
+                "summary": "List Tenure Slabs",
+                "operationId": "587688dd65d017b8ae052da9f71ad162",
+                "parameters": [
+                    {
+                        "name": "emi_type_id",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "TenureSlab"
+                ],
+                "summary": "Create Tenure Slab",
+                "operationId": "07cd0f73c2cd5da424e68235fa2bd005",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "emi_type_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "tenure_months": {
+                                        "type": "integer",
+                                        "example": 6
+                                    },
+                                    "base_interest_rate": {
+                                        "type": "number",
+                                        "example": 12.5
+                                    },
+                                    "processing_fee_type": {
+                                        "type": "string",
+                                        "example": "percentage"
+                                    },
+                                    "processing_fee_value": {
+                                        "type": "number",
+                                        "example": 1.5
+                                    },
+                                    "processing_fee_cap": {
+                                        "type": "number",
+                                        "example": 1500
+                                    },
+                                    "tier_overrides": {
+                                        "type": "object",
+                                        "example": {
+                                            "Gold": {
+                                                "base_interest_rate": 10.5
+                                            }
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/pricing/tenure-slabs/{id}": {
+            "get": {
+                "tags": [
+                    "TenureSlab"
+                ],
+                "summary": "Show Tenure Slab",
+                "operationId": "28dbadfd3a57fff9ac58557639ab3b00",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "TenureSlab"
+                ],
+                "summary": "Update Tenure Slab",
+                "operationId": "c5a3a11908f1eb8d9bfe14ef589c0f80",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "emi_type_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "tenure_months": {
+                                        "type": "integer",
+                                        "example": 6
+                                    },
+                                    "base_interest_rate": {
+                                        "type": "number",
+                                        "example": 11
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "TenureSlab"
+                ],
+                "summary": "Delete Tenure Slab",
+                "operationId": "eb3fc8f3b0c3f7e37ffc005a6c4f1d5b",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/pricing/tenure-slabs/export": {
+            "get": {
+                "tags": [
+                    "TenureSlab"
+                ],
+                "summary": "Export Tenure Slabs to CSV",
+                "operationId": "da87a528a7e0a2bc13eb0f0a6ba4b51c",
+                "responses": {
+                    "200": {
+                        "description": "CSV file download"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/pricing/tenure-slabs/import": {
+            "post": {
+                "tags": [
+                    "TenureSlab"
+                ],
+                "summary": "Import Tenure Slabs from CSV",
+                "operationId": "6ffee348eec8e22dc623490e32d1656e",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "properties": {
+                                    "csv_file": {
+                                        "description": "CSV file to import",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "sanctum": {
+                "type": "http",
+                "scheme": "bearer"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Brand",
+            "description": "Brand"
+        },
+        {
+            "name": "Category",
+            "description": "Category"
+        },
+        {
+            "name": "Lender",
+            "description": "Lender"
+        },
+        {
+            "name": "LenderRule",
+            "description": "LenderRule"
+        },
+        {
+            "name": "LenderSla",
+            "description": "LenderSla"
+        },
+        {
+            "name": "LenderWaterfall",
+            "description": "LenderWaterfall"
+        },
+        {
+            "name": "MerchantAgreement",
+            "description": "MerchantAgreement"
+        },
+        {
+            "name": "MerchantCategory",
+            "description": "MerchantCategory"
+        },
+        {
+            "name": "Merchant",
+            "description": "Merchant"
+        },
+        {
+            "name": "Product",
+            "description": "Product"
+        },
+        {
+            "name": "Store",
+            "description": "Store"
+        },
+        {
+            "name": "VerificationLog",
+            "description": "VerificationLog"
+        },
+        {
+            "name": "Auth",
+            "description": "Auth"
+        },
+        {
+            "name": "EMI Types",
+            "description": "EMI Types"
+        },
+        {
+            "name": "Offer",
+            "description": "Offer"
+        },
+        {
+            "name": "TenureSlab",
+            "description": "TenureSlab"
+        }
+    ]
+}
