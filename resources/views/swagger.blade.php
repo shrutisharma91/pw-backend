@@ -31,7 +31,7 @@
         window.onload = function() {
             // Initialize Swagger UI pointing to the local openapi.json configuration
             const ui = SwaggerUIBundle({
-                url: "/openapi.json",
+                url: "/docs/api-docs.json",
                 dom_id: '#swagger-ui',
                 deepLinking: true,
                 presets: [
