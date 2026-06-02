@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "FinZ LMS - Super Admin API",
-    "description": "Complete API collection for FinZ LMS Super Admin Panel (Phase 1)",
+    "description": "Complete API collection for FinZ LMS Super Admin Panel (Phases 1-3, Screens 01-13)",
     "version": "1.0.0",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
@@ -19,7 +19,7 @@
   ],
   "item": [
     {
-      "name": "1️⃣ PUBLIC - Authentication",
+      "name": "1️⃣ PUBLIC - Authentication & SSO (Screen 01, 03)",
       "item": [
         {
           "name": "Login (Get Token)",
@@ -33,17 +33,17 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"password\"\n}"
+              "raw": "{\n  \"email\": \"superadmin@finz.com\",\n  \"password\": \"password\",\n  \"captcha_key\": \"optional_uuid\",\n  \"captcha_answer\": \"optional_sum\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/v1/auth/login",
               "host": ["{{base_url}}"],
               "path": ["api", "v1", "auth", "login"]
             },
-            "description": "Login with email and password. Returns token and user info. Copy the token and save it to {{token}} variable."
-          },
-          "response": []
+            "description": "Login with email and password. Generates CAPTCHA requirements if attempts >= 3."
+          }
         },
+
         {
           "name": "Forgot Password",
           "request": {
@@ -56,16 +56,15 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@example.com\"\n}"
+              "raw": "{\n  \"email\": \"superadmin@finz.com\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/v1/auth/forgot-password",
               "host": ["{{base_url}}"],
               "path": ["api", "v1", "auth", "forgot-password"]
             },
-            "description": "Send password reset link to email"
-          },
-          "response": []
+            "description": "Send password reset token link."
+          }
         },
         {
           "name": "Reset Password",
@@ -79,24 +78,23 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"token\": \"reset_token_from_email\",\n  \"password\": \"new_password123\",\n  \"password_confirmation\": \"new_password123\"\n}"
+              "raw": "{\n  \"email\": \"superadmin@finz.com\",\n  \"token\": \"mock_reset_token\",\n  \"password\": \"SecurePass123!\",\n  \"password_confirmation\": \"SecurePass123!\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/v1/auth/reset-password",
               "host": ["{{base_url}}"],
               "path": ["api", "v1", "auth", "reset-password"]
             },
-            "description": "Reset password using token from email"
-          },
-          "response": []
+            "description": "Reset password using the generated token. Validates complexity and prevents reusing the last 5 passwords."
+          }
         }
       ]
     },
     {
-      "name": "2️⃣ MFA - Token Required",
+      "name": "2️⃣ MFA - Verification (Screen 02)",
       "item": [
         {
-          "name": "Verify MFA (Get OTP)",
+          "name": "Verify MFA (TOTP / Email)",
           "request": {
             "method": "POST",
             "header": [
@@ -111,16 +109,15 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"otp\": \"123456\"\n}"
+              "raw": "{\n  \"otp\": \"123456\",\n  \"remember_device\": true\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/v1/auth/mfa/verify",
               "host": ["{{base_url}}"],
               "path": ["api", "v1", "auth", "mfa", "verify"]
             },
-            "description": "Verify MFA with OTP. Returns verified token. Update {{token}} with new token from response."
-          },
-          "response": []
+            "description": "Verify Google Authenticator TOTP or Email OTP code. Optionally issues a 30-day skip-MFA cookie."
+          }
         },
         {
           "name": "Resend OTP",
@@ -130,52 +127,17 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{}"
-            },
             "url": {
               "raw": "{{base_url}}/api/v1/auth/mfa/resend",
               "host": ["{{base_url}}"],
               "path": ["api", "v1", "auth", "mfa", "resend"]
             },
-            "description": "Resend OTP to user"
-          },
-          "response": []
+            "description": "Resends a new email OTP if the previous one expired."
+          }
         },
-        {
-          "name": "Refresh Token",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/auth/refresh",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "auth", "refresh"]
-            },
-            "description": "Refresh token before it expires. Update {{token}} with new token."
-          },
-          "response": []
-        },
+
         {
           "name": "Logout",
           "request": {
@@ -184,32 +146,23 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{}"
-            },
             "url": {
               "raw": "{{base_url}}/api/v1/auth/logout",
               "host": ["{{base_url}}"],
               "path": ["api", "v1", "auth", "logout"]
             },
-            "description": "Logout user and invalidate token"
-          },
-          "response": []
+            "description": "Terminates the current token and flags the session active status to false."
+          }
         }
       ]
     },
     {
-      "name": "3️⃣ PROTECTED - Profile (Token + MFA Required)",
+      "name": "3️⃣ PROTECTED - Profile (Screen 04)",
       "item": [
         {
-          "name": "Get Profile",
+          "name": "Get My Profile",
           "request": {
             "method": "GET",
             "header": [
@@ -222,150 +175,13 @@
               "raw": "{{base_url}}/api/v1/admin/profile",
               "host": ["{{base_url}}"],
               "path": ["api", "v1", "admin", "profile"]
-            },
-            "description": "Get current user profile information"
-          },
-          "response": []
-        },
-        {
-          "name": "Update Profile",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Updated Name\",\n  \"mobile\": \"+1234567890\",\n  \"photo\": \"base64_image_or_url\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/admin/profile",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "admin", "profile"]
-            },
-            "description": "Update user name, mobile, and profile photo"
-          },
-          "response": []
-        },
-        {
-          "name": "Change Password",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"current_password\": \"password\",\n  \"new_password\": \"new_password123\",\n  \"new_password_confirmation\": \"new_password123\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/admin/profile/change-password",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "admin", "profile", "change-password"]
-            },
-            "description": "Change user password"
-          },
-          "response": []
-        },
-        {
-          "name": "MFA Setup (Enable)",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"action\": \"enable\",\n  \"channel\": \"totp\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/admin/profile/mfa-setup",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "admin", "profile", "mfa-setup"]
-            },
-            "description": "Enable MFA for user account"
-          },
-          "response": []
-        },
-        {
-          "name": "MFA Setup (Disable)",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"action\": \"disable\",\n  \"password\": \"user_password\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/admin/profile/mfa-setup",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "admin", "profile", "mfa-setup"]
-            },
-            "description": "Disable MFA for user account (requires password)"
-          },
-          "response": []
-        },
-        {
-          "name": "Update Preferences",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"theme\": \"dark\",\n  \"timezone\": \"UTC\",\n  \"email_notifications\": true,\n  \"push_notifications\": false\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/v1/admin/profile/preferences",
-              "host": ["{{base_url}}"],
-              "path": ["api", "v1", "admin", "profile", "preferences"]
-            },
-            "description": "Update user preferences (theme, timezone, notifications)"
-          },
-          "response": []
+            }
+          }
         }
       ]
     },
     {
-      "name": "4️⃣ PROTECTED - Notifications (Token + MFA Required)",
+      "name": "4️⃣ PROTECTED - Notification Center (Screen 05)",
       "item": [
         {
           "name": "Get All Notifications",
@@ -378,28 +194,21 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/v1/admin/notifications?tab=all&page=1&per_page=15",
+              "raw": "{{base_url}}/api/v1/admin/notifications?tab=all&page=1",
               "host": ["{{base_url}}"],
               "path": ["api", "v1", "admin", "notifications"],
               "query": [
                 {
                   "key": "tab",
-                  "value": "all",
-                  "description": "Filter: unread | read | archived | all"
+                  "value": "all"
                 },
                 {
                   "key": "page",
                   "value": "1"
-                },
-                {
-                  "key": "per_page",
-                  "value": "15"
                 }
               ]
-            },
-            "description": "Get notifications with filters and pagination"
-          },
-          "response": []
+            }
+          }
         },
         {
           "name": "Mark All as Read",
@@ -409,27 +218,141 @@
               {
                 "key": "Authorization",
                 "value": "Bearer {{token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
               }
             ],
-            "body": {
-              "mode": "raw",
-              "raw": "{}"
-            },
             "url": {
               "raw": "{{base_url}}/api/v1/admin/notifications/read-all",
               "host": ["{{base_url}}"],
               "path": ["api", "v1", "admin", "notifications", "read-all"]
-            },
-            "description": "Mark all notifications as read"
-          },
-          "response": []
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5️⃣ PROTECTED - Command Center & Health (Screen 06, 07, 08)",
+      "item": [
+        {
+          "name": "Get System Health Overview",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/system-health",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "system-health"]
+            }
+          }
         },
         {
-          "name": "Mark One as Read",
+          "name": "Global Search Query",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/search?q=merchant",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "merchant"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6️⃣ PROTECTED - User Directory & Impersonation (Screen 09, 10)",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/users?role=merchant_admin",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "users"],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "merchant_admin"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Store Owner\",\n  \"email\": \"storeowner@example.com\",\n  \"mobile\": \"9876543210\",\n  \"role\": \"store_manager\",\n  \"mfa_enabled\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "users"]
+            }
+          }
+        },
+        {
+          "name": "Request Password Reset Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"sharmashruti160924@gmail.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/users/9/reset-password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "users", "9", "reset-password"]
+            },
+            "description": "Super Admin only. Path id = target user. Email = Super Admin login email. Code is sent to Super Admin."
+          }
+        },
+        {
+          "name": "Change User Password",
           "request": {
             "method": "PUT",
             "header": [
@@ -444,21 +367,20 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}"
+              "raw": "{\n  \"verification_code\": \"123456\",\n  \"new_password\": \"SecurePass99!\",\n  \"new_password_confirmation\": \"SecurePass99!\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/v1/admin/notifications/1/read",
+              "raw": "{{base_url}}/api/v1/admin/users/9/change-password",
               "host": ["{{base_url}}"],
-              "path": ["api", "v1", "admin", "notifications", "1", "read"]
+              "path": ["api", "v1", "admin", "users", "9", "change-password"]
             },
-            "description": "Mark a specific notification as read (replace 1 with notification ID)"
-          },
-          "response": []
+            "description": "Super Admin only. Path id = target user. Uses verification code from Super Admin email."
+          }
         },
         {
-          "name": "Snooze Notification",
+          "name": "Impersonate User (Audited Start)",
           "request": {
-            "method": "PUT",
+            "method": "POST",
             "header": [
               {
                 "key": "Authorization",
@@ -471,48 +393,123 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"minutes\": 30\n}"
+              "raw": "{\n  \"reason\": \"Debugging permissions setup on store portal.\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/v1/admin/notifications/1/snooze",
+              "raw": "{{base_url}}/api/v1/admin/users/2/impersonate",
               "host": ["{{base_url}}"],
-              "path": ["api", "v1", "admin", "notifications", "1", "snooze"]
+              "path": ["api", "v1", "admin", "users", "2", "impersonate"]
             },
-            "description": "Snooze a notification for specified minutes (replace 1 with notification ID)"
-          },
-          "response": []
+            "description": "Logs in as another user, recording the audit logs with reason and admin context persistently in the database."
+          }
+        }
+      ]
+    },
+    {
+      "name": "7️⃣ PROTECTED - Role Management (Screen 11)",
+      "item": [
+        {
+          "name": "List Roles",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/roles",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "roles"]
+            }
+          }
         },
         {
-          "name": "Archive Notification",
+          "name": "Define Custom Role",
           "request": {
-            "method": "PUT",
+            "method": "POST",
             "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{}"
+              "raw": "{\n  \"name\": \"finance_ops\",\n  \"permissions\": [\"view_users\", \"view_roles\", \"edit_users\"]\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/v1/admin/notifications/1/archive",
+              "raw": "{{base_url}}/api/v1/admin/roles",
               "host": ["{{base_url}}"],
-              "path": ["api", "v1", "admin", "notifications", "1", "archive"]
-            },
-            "description": "Archive a notification (replace 1 with notification ID)"
-          },
-          "response": []
+              "path": ["api", "v1", "admin", "roles"]
+            }
+          }
         },
         {
-          "name": "Delete Notification",
+          "name": "Get Role Details",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/roles/2",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "roles", "2"]
+            }
+          }
+        },
+        {
+          "name": "Rename Custom Role",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"finance_ops_senior\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/roles/2",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "roles", "2"]
+            }
+          }
+        },
+        {
+          "name": "Clone Role",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"new_name\": \"finance_ops_readonly\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/roles/2/clone",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "roles", "2", "clone"]
+            }
+          }
+        },
+        {
+          "name": "Archive Custom Role",
           "request": {
             "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/roles/2",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "roles", "2"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "8️⃣ PROTECTED - Permission Matrix (Screen 12)",
+      "item": [
+        {
+          "name": "Get Permissions Matrix",
+          "request": {
+            "method": "GET",
             "header": [
               {
                 "key": "Authorization",
@@ -520,13 +517,138 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/v1/admin/notifications/1",
+              "raw": "{{base_url}}/api/v1/admin/permissions",
               "host": ["{{base_url}}"],
-              "path": ["api", "v1", "admin", "notifications", "1"]
+              "path": ["api", "v1", "admin", "permissions"]
+            }
+          }
+        },
+        {
+          "name": "Update Role Permissions (Backup Snapshots)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permissions\": [\"view_users\", \"edit_profile\", \"view_roles\", \"create_users\"]\n}"
             },
-            "description": "Delete a notification (replace 1 with notification ID)"
-          },
-          "response": []
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/permissions/roles/2",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "permissions", "roles", "2"]
+            },
+            "description": "Applies new permissions to a role while backing up the old configuration snapshot inside the audit_logs table."
+          }
+        },
+        {
+          "name": "Compare Two Roles",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/permissions/roles/2/diff/3",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "permissions", "roles", "2", "diff", "3"]
+            }
+          }
+        },
+        {
+          "name": "Rollback Permissions Matrix",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/permissions/roles/2/rollback",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "permissions", "roles", "2", "rollback"]
+            },
+            "description": "Pulls the latest database snapshot from audit_logs for the role and restores it."
+          }
+        }
+      ]
+    },
+    {
+      "name": "8️⃣ PROTECTED - Session & IP Restrictions (Screen 13)",
+      "item": [
+        {
+          "name": "Get All Active Sessions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/sessions?suspicious=true",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "sessions"],
+              "query": [
+                {
+                  "key": "suspicious",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update IP & Session Rules",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"merchant_admin\",\n  \"allowlist\": [\"127.0.0.1\", \"192.168.1.0/24\"],\n  \"denylist\": [\"10.0.0.5\"],\n  \"concurrent_session_limit\": 3\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/sessions/ip-rules",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "sessions", "ip-rules"]
+            },
+            "description": "Updates persistent security policies (IP lists, concurrent limits) in role_configs table."
+          }
+        },
+        {
+          "name": "Revoke Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/sessions/1/revoke",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "sessions", "1", "revoke"]
+            }
+          }
         }
       ]
     }

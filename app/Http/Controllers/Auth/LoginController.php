@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\AdminSession;
+use App\Models\RoleConfig;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Cache;
 use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 use OpenApi\Attributes as OA;
 
@@ -20,7 +22,6 @@ use OpenApi\Attributes as OA;
 | APIs:
 |   POST /api/v1/auth/login    → login with email + password
 |   POST /api/v1/auth/logout   → logout and invalidate token
-|   POST /api/v1/auth/refresh  → get a fresh token before expiry
 |
 | Flow:
 |   1. Validate email/password
@@ -71,6 +72,57 @@ class LoginController extends Controller
             ], 401);
         }
 
+        // Step 3.5: Check IP rules for user's role before proceeding
+        if (!RoleConfig::checkIPRules($user->role, $request->ip())) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Access denied from this IP address.',
+            ], 403);
+        }
+
+        // Step 3.6: Check failed attempts CAPTCHA requirement
+        $ip = $request->ip();
+        $email = $request->email;
+        $cacheKey = "login_attempts:{$ip}_" . md5($email);
+        $attempts = Cache::get($cacheKey, 0);
+
+        $captchaRequired = $attempts >= 3;
+
+        if ($captchaRequired) {
+            if (!$request->has('captcha_key') || !$request->has('captcha_answer')) {
+                $captchaKey = (string) \Illuminate\Support\Str::uuid();
+                $num1 = rand(1, 9);
+                $num2 = rand(1, 9);
+                $answer = (string)($num1 + $num2);
+                Cache::put("captcha:{$captchaKey}", $answer, 300);
+
+                return response()->json([
+                    'success' => false,
+                    'captcha_required' => true,
+                    'captcha_key' => $captchaKey,
+                    'captcha_question' => "{$num1} + {$num2}",
+                    'message' => 'CAPTCHA verification required after multiple failed login attempts.',
+                ], 403);
+            }
+
+            $cachedAnswer = Cache::get("captcha:{$request->captcha_key}");
+            if (!$cachedAnswer || $cachedAnswer !== $request->captcha_answer) {
+                $captchaKey = (string) \Illuminate\Support\Str::uuid();
+                $num1 = rand(1, 9);
+                $num2 = rand(1, 9);
+                $answer = (string)($num1 + $num2);
+                Cache::put("captcha:{$captchaKey}", $answer, 300);
+
+                return response()->json([
+                    'success' => false,
+                    'captcha_required' => true,
+                    'captcha_key' => $captchaKey,
+                    'captcha_question' => "{$num1} + {$num2}",
+                    'message' => 'Invalid or expired CAPTCHA answer.',
+                ], 403);
+            }
+        }
+
         // Step 4: Is the account active?
         if (!$user->is_active) {
             return response()->json([
@@ -91,16 +143,61 @@ class LoginController extends Controller
 
         // Step 6: Check password
         if (!Hash::check($request->password, $user->password)) {
-            $user->incrementFailedLogin(); // Track failed attempt
-            return response()->json([
+            $user->incrementFailedLogin(); // Track failed attempt in DB for account lockout
+
+            // Track failed attempt in cache for CAPTCHA triggering
+            $attempts++;
+            Cache::put($cacheKey, $attempts, 600); // 10 minutes TTL
+
+            $response = [
                 'success' => false,
                 'message' => 'Invalid email or password.',
                 'failed_attempts' => $user->fresh()->failed_login_attempts,
-            ], 401);
+            ];
+
+            if ($attempts >= 3) {
+                $captchaKey = (string) \Illuminate\Support\Str::uuid();
+                $num1 = rand(1, 9);
+                $num2 = rand(1, 9);
+                $answer = (string)($num1 + $num2);
+                Cache::put("captcha:{$captchaKey}", $answer, 300);
+
+                $response['captcha_required'] = true;
+                $response['captcha_key'] = $captchaKey;
+                $response['captcha_question'] = "{$num1} + {$num2}";
+            }
+
+            return response()->json($response, 401);
         }
 
         // Step 7: Password correct — reset failed attempts
         $user->resetFailedLogin();
+        Cache::forget($cacheKey);
+
+        // Step 7.5: Enforce concurrent session limits per role
+        $roleConfig = RoleConfig::where('role_name', $user->role)->first();
+        $sessionLimit = $roleConfig ? $roleConfig->concurrent_session_limit : 5;
+
+        $activeSessionsCount = AdminSession::where('user_id', $user->id)
+            ->where('is_active', true)
+            ->count();
+
+        if ($activeSessionsCount >= $sessionLimit) {
+            // Revoke oldest active session(s)
+            $oldestSessions = AdminSession::where('user_id', $user->id)
+                ->where('is_active', true)
+                ->orderBy('logged_in_at', 'asc')
+                ->limit($activeSessionsCount - $sessionLimit + 1)
+                ->get();
+
+            foreach ($oldestSessions as $oldSession) {
+                $oldSession->update([
+                    'is_active' => false,
+                    'logged_out_at' => now(),
+                    'suspicious_reason' => 'Terminated due to concurrent session limit per role.'
+                ]);
+            }
+        }
 
         // Step 8: Generate JWT token
         $token = JWTAuth::fromUser($user);
@@ -108,41 +205,20 @@ class LoginController extends Controller
         // Step 9: Log this session for Screen 13 (Session Management)
         $this->logSession($user, $token);
 
-        // Step 10: Does this user have MFA enabled?
-        if ($user->mfa_enabled) {
-            // Send OTP (SMS or via authenticator setup)
-            app(\App\Services\MFAService::class)->sendOTP($user);
+        // Step 10: MFA is permanently enabled for all users.
+        // Send OTP
+        app(\App\Services\MFAService::class)->sendOTP($user);
 
-            // Tell frontend: show MFA screen (Screen 02)
-            return response()->json([
-                'success'      => true,
-                'mfa_required' => true,
-                'message'      => 'OTP sent. Please verify to continue.',
-                'token'        => $token, // temp token — cannot access protected routes yet
-                'user' => [
-                    'name'        => $user->name,
-                    'email'       => $user->email,
-                    'mfa_channel' => $user->mfa_channel, // 'totp' or 'email'
-                ],
-            ]);
-        }
-
-        // Step 11: No MFA — login complete, return token + user info
+        // Tell frontend: show MFA screen (Screen 02)
         return response()->json([
             'success'      => true,
-            'mfa_required' => false,
-            'message'      => 'Login successful.',
-            'token'        => $token,
-            'token_type'   => 'bearer',
-            'expires_in'   => config('jwt.ttl') * 60, // seconds
+            'mfa_required' => true,
+            'message'      => 'OTP sent. Please verify to continue.',
+            'access_token' => $token, // temp token — cannot access protected routes yet
             'user' => [
-                'id'       => $user->id,
-                'name'     => $user->name,
-                'email'    => $user->email,
-                'role'     => $user->role,
-                'theme'    => $user->theme,
-                'timezone' => $user->timezone,
-                'photo'    => $user->profile_photo,
+                'name'        => $user->name,
+                'email'       => $user->email,
+                'mfa_channel' => $user->mfa_channel ?? 'email',
             ],
         ]);
     }
@@ -228,6 +304,30 @@ class LoginController extends Controller
         $payload    = JWTAuth::setToken($token)->getPayload();
         $userAgent  = request()->userAgent() ?? 'Unknown';
 
+        // Check for suspicious login indicators
+        $lastSession = AdminSession::where('user_id', $user->id)
+            ->orderBy('logged_in_at', 'desc')
+            ->first();
+
+        $isSuspicious = false;
+        $suspiciousReason = null;
+
+        if ($lastSession) {
+            if ($lastSession->ip_address !== request()->ip()) {
+                $isSuspicious = true;
+                $suspiciousReason = 'IP address changed from ' . $lastSession->ip_address;
+            } elseif ($lastSession->device_info !== $userAgent) {
+                $isSuspicious = true;
+                $suspiciousReason = 'Device/browser changed';
+            }
+        }
+
+        $hour = (int) now()->format('H');
+        if ($hour >= 23 || $hour < 5) {
+            $isSuspicious = true;
+            $suspiciousReason = ($suspiciousReason ? $suspiciousReason . '; ' : '') . 'Login during unusual hours (off-work)';
+        }
+
         AdminSession::create([
             'user_id'       => $user->id,
             'token_id'      => $payload->get('jti'), // unique token ID
@@ -235,6 +335,8 @@ class LoginController extends Controller
             'device_info'   => $userAgent,
             'device_type'   => $this->detectDeviceType($userAgent),
             'is_active'     => true,
+            'is_suspicious' => $isSuspicious,
+            'suspicious_reason' => $suspiciousReason,
             'logged_in_at'  => now(),
             'last_active_at' => now(),
         ]);
@@ -251,4 +353,6 @@ class LoginController extends Controller
         }
         return 'desktop';
     }
+
+
 }

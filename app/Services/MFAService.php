@@ -22,7 +22,6 @@ class MFAService
 {
     private int $otpTTL = 300;       // OTP valid for 5 minutes
     private string $cachePrefix = 'mfa_otp_';
-    private string $devEmail = 'finzwork10@gmail.com'; // ← your email
 
     // ------------------------------------------------------------------
     // Generate and send OTP
@@ -46,8 +45,8 @@ class MFAService
             $this->otpTTL
         );
 
-        // Send OTP via email
-        $this->sendEmail($otp, $user->name);
+        // Send OTP via email notification
+        $user->notify(new SendOTPNotification($otp));
 
         Log::info("OTP for user {$user->id}: {$otp}");
 
@@ -59,6 +58,21 @@ class MFAService
     // ------------------------------------------------------------------
     public function verifyOTP(User $user, string $enteredOTP): array
     {
+        // First check: Is it a backup recovery code?
+        if (strlen($enteredOTP) !== 6 && !empty($user->mfa_recovery_codes)) {
+            $codes = $user->mfa_recovery_codes;
+            if (in_array($enteredOTP, $codes)) {
+                // Remove the used recovery code
+                $newCodes = array_values(array_diff($codes, [$enteredOTP]));
+                $user->update(['mfa_recovery_codes' => $newCodes]);
+
+                return [
+                    'success' => true,
+                    'message' => 'Backup recovery code verified. MFA bypassed for this login.',
+                ];
+            }
+        }
+
         if ($user->mfa_channel === 'totp') {
             return $this->verifyTOTP($user, $enteredOTP);
         }
@@ -116,45 +130,117 @@ class MFAService
     // ------------------------------------------------------------------
     private function verifyTOTP(User $user, string $code): array
     {
-        if (strlen($code) !== 6 || !ctype_digit($code)) {
+        $secret = $user->mfa_secret;
+        if (!$secret) {
             return [
                 'success' => false,
-                'message' => 'Invalid authenticator code.',
-                'code'    => 'invalid_totp',
+                'message' => 'TOTP is not configured for this user.',
+                'code'    => 'totp_not_configured',
+            ];
+        }
+
+        if ($this->verifyTOTPCode($secret, $code)) {
+            return [
+                'success' => true,
+                'message' => 'Authenticator code verified.',
             ];
         }
 
         return [
-            'success' => true,
-            'message' => 'Authenticator code verified.',
+            'success' => false,
+            'message' => 'Invalid authenticator code.',
+            'code'    => 'invalid_totp',
         ];
     }
 
     // ------------------------------------------------------------------
-    // Send OTP via Email to finzwork10@gmail.com
+    // TOTP Core Verification Functions
     // ------------------------------------------------------------------
-    private function sendEmail(string $otp, string $userName): void
+    public function verifyTOTPCode(string $secret, string $code, int $discrepancy = 1): bool
     {
-        Mail::send([], [], function ($message) use ($otp, $userName) {
-            $message->to($this->devEmail)
-                    ->subject('FinZ Admin — Your Login OTP')
-                    ->html("
-                        <div style='font-family: Arial, sans-serif; max-width: 400px; margin: auto;'>
-                            <h2 style='color: #008080;'>FinZ Admin — OTP Verification</h2>
-                            <p>Hello <b>{$userName}</b>,</p>
-                            <p>Your one-time password for login is:</p>
-                            <div style='font-size: 36px; font-weight: bold; letter-spacing: 8px;
-                                        background: #f4f4f4; padding: 16px; text-align: center;
-                                        border-radius: 8px; margin: 16px 0;'>
-                                {$otp}
-                            </div>
-                            <p>This OTP is valid for <b>5 minutes</b> only.</p>
-                            <p>If you did not request this, please secure your account immediately.</p>
-                            <p style='color: #888; font-size: 12px;'>FinZ Security Team</p>
-                        </div>
-                    ");
-        });
+        if (strlen($code) !== 6 || !ctype_digit($code)) {
+            return false;
+        }
+
+        $key = $this->base32Decode($secret);
+        $timeWindow = floor(time() / 30);
+
+        for ($i = -$discrepancy; $i <= $discrepancy; $i++) {
+            $timeStep = $timeWindow + $i;
+            // Pack time step to 64-bit binary (8 bytes)
+            $timePacked = pack('N*', 0) . pack('N*', $timeStep);
+            
+            // Compute HMAC-SHA1
+            $hash = hash_hmac('sha1', $timePacked, $key, true);
+            
+            // Dynamic truncation
+            $offset = ord($hash[19]) & 0x0F;
+            $truncated = unpack('N', substr($hash, $offset, 4));
+            $otp = $truncated[1] & 0x7FFFFFFF;
+            $otpCode = str_pad($otp % 1000000, 6, '0', STR_PAD_LEFT);
+
+            if (hash_equals($otpCode, $code)) {
+                return true;
+            }
+        }
+
+        return false;
     }
+
+    public function generateSecretKey(int $length = 16): string
+    {
+        $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+        $secret = '';
+        for ($i = 0; $i < $length; $i++) {
+            $secret .= $alphabet[random_int(0, 31)];
+        }
+        return $secret;
+    }
+
+    public function generateRecoveryCodes(int $count = 8): array
+    {
+        $codes = [];
+        for ($i = 0; $i < $count; $i++) {
+            $codes[] = sprintf(
+                "%04x-%04x",
+                random_int(0, 0xffff),
+                random_int(0, 0xffff)
+            );
+        }
+        return $codes;
+    }
+
+    private function base32Decode(string $base32): string
+    {
+        $base32 = strtoupper($base32);
+        $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+        $buffer = 0;
+        $bufferSize = 0;
+        $binary = '';
+
+        for ($i = 0; $i < strlen($base32); $i++) {
+            $char = $base32[$i];
+            if ($char === '=') {
+                break;
+            }
+            $val = strpos($alphabet, $char);
+            if ($val === false) {
+                continue;
+            }
+
+            $buffer = ($buffer << 5) | $val;
+            $bufferSize += 5;
+
+            if ($bufferSize >= 8) {
+                $bufferSize -= 8;
+                $binary .= chr(($buffer >> $bufferSize) & 0xFF);
+            }
+        }
+
+        return $binary;
+    }
+
+
 
     // ------------------------------------------------------------------
     // Generate random 6-digit OTP
