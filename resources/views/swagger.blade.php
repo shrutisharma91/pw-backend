@@ -31,7 +31,11 @@
         window.onload = function() {
             // Initialize Swagger UI pointing to the local openapi.json configuration
             const ui = SwaggerUIBundle({
-                url: "/docs",
+                urls: [
+                    {url: "/docs", name: "Phase 4-7 APIs (Auto-generated)"},
+                    {url: "/openapi.json", name: "Phase 1-3 APIs (Legacy)"}
+                ],
+                'urls.primaryName': "Phase 4-7 APIs (Auto-generated)",
                 dom_id: '#swagger-ui',
                 deepLinking: true,
                 presets: [
