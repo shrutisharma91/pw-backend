@@ -7,7 +7,7 @@
   },
   "servers": [
     {
-      "url": "http://127.0.0.1:8000",
+      "url": "https://pw-backend-2cwh.onrender.com",
       "description": "Local Development Server"
     }
   ],
