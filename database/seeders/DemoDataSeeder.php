@@ -13,7 +13,7 @@ class DemoDataSeeder extends Seeder
     public function run(): void
     {
         // Category
-        $cat = \App\Models\Category::firstOrCreate(
+        $cat = \App\Models\Category::withTrashed()->firstOrCreate(
             ['slug' => 'smartphones'],
             [
                 'name' => 'Smartphones',
@@ -22,6 +22,9 @@ class DemoDataSeeder extends Seeder
                 'default_tenure_months' => 12
             ]
         );
+        if ($cat->trashed()) {
+            $cat->restore();
+        }
 
         // Brand
         $brand = \App\Models\Brand::firstOrCreate(
@@ -83,12 +86,12 @@ class DemoDataSeeder extends Seeder
 
         // Verification Log
         \App\Models\VerificationLog::firstOrCreate(
-            ['merchant_id' => $merchant->id, 'document_type' => 'GST Certificate'],
+            ['merchant_id' => $merchant->id, 'api_type' => 'GST'],
             [
                 'status' => 'Failed',
-                'api_payload' => json_encode(['request' => 'verify_gst']),
-                'api_response' => json_encode(['error' => 'API timeout']),
-                'error_message' => 'Upstream provider timeout'
+                'provider' => 'Karza',
+                'request_payload' => json_encode(['request' => 'verify_gst']),
+                'response_payload' => json_encode(['error' => 'API timeout'])
             ]
         );
     }
