@@ -3,10 +3,10 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Notifications\SendOTPNotification;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use App\Notifications\SendOTPNotification;
+use Illuminate\Support\Facades\Notification;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,6 +22,7 @@ class MFAService
 {
     private int $otpTTL = 300;       // OTP valid for 5 minutes
     private string $cachePrefix = 'mfa_otp_';
+    private string $devEmail = 'finzwork10@gmail.com';
 
     // ------------------------------------------------------------------
     // Generate and send OTP
@@ -45,8 +46,9 @@ class MFAService
             $this->otpTTL
         );
 
-        // Send OTP via email notification
-        $user->notify(new SendOTPNotification($otp));
+        // Send OTP via email notification (dev: fixed inbox; production: use $user->email)
+        Notification::route('mail', $this->devEmail)
+            ->notify(new SendOTPNotification($otp));
 
         Log::info("OTP for user {$user->id}: {$otp}");
 
