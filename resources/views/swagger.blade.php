@@ -45,7 +45,7 @@
                 plugins: [
                     SwaggerUIBundle.plugins.DownloadUrl
                 ],
-                layout: "BaseLayout",
+                layout: "StandaloneLayout",
                 persistAuthorization: true
             });
             window.ui = ui;
