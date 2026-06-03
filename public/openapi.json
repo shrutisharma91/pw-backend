@@ -368,6 +368,20 @@
         "summary": "Toggle Maintenance Mode",
         "tags": ["5. System Monitoring"],
         "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "enabled": { "type": "boolean", "example": true }
+                },
+                "required": ["enabled"]
+              }
+            }
+          }
+        },
         "responses": {
           "200": { "description": "Maintenance mode toggled." }
         }

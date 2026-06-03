@@ -111,10 +111,11 @@ class CategoryController extends Controller
             new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
         ],
         requestBody: new OA\RequestBody(
-            required: true,
+            required: false,
+            description: "Optional. ID of another existing category to reassign all products to before archiving. If provided, the ID must exist in the categories table.",
             content: new OA\JsonContent(
                 properties: [
-                    new OA\Property(property: "reassign_to", type: "integer", example: 2)
+                    new OA\Property(property: "reassign_to", type: "integer", description: "Must be a valid existing Category ID", example: null)
                 ]
             )
         ),

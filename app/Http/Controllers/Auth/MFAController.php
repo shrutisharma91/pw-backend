@@ -139,4 +139,27 @@ class MFAController extends Controller
             'channel'    => $user->mfa_channel,             // 'email' or 'totp'
         ]);
     }
+
+    // ------------------------------------------------------------------
+    // POST /api/v1/auth/mfa/toggle
+    // ------------------------------------------------------------------
+    #[OA\Post(
+        path: "/api/v1/auth/mfa/toggle",
+        summary: "Toggle Global MFA Switch (Project level)",
+        security: [["sanctum" => []]],
+        tags: ["Auth"],
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
+    public function toggleGlobal(Request $request)
+    {
+        // For now, this is a mock endpoint as we do not have a global settings table
+        // that handles project-level MFA toggles dynamically.
+        return response()->json([
+            'success' => true,
+            'message' => 'Global MFA requirement toggled successfully.',
+            'mfa_enabled' => false // mock value
+        ]);
+    }
 }

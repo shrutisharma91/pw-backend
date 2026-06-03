@@ -71,6 +71,12 @@ Route::prefix('v1')->group(function () {
 
 
 
+        // Global MFA Toggle
+        Route::post('/mfa/toggle', [MFAController::class, 'toggleGlobal']);
+
+        // Refresh Token
+        Route::post('/refresh', [LoginController::class, 'refresh']);
+
         // Logout
         Route::post('/logout', [LoginController::class, 'logout']);
     });
