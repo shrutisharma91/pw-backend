@@ -39,6 +39,15 @@ class ConsentLogController extends Controller
         parameters: [
             new OA\Parameter(name: "id", in: "path", required: true)
         ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["reason"],
+                properties: [
+                    new OA\Property(property: "reason", type: "string", example: "Customer requested data deletion under DPDP act.")
+                ]
+            )
+        ),
         responses: [
             new OA\Response(response: 200, description: "Success")
         ]

@@ -112,6 +112,40 @@
                 ],
                 "summary": "store Blacklist",
                 "operationId": "7b8cbff79b0b4f07cb5a4524bb908044",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "category",
+                                    "value",
+                                    "reason",
+                                    "severity"
+                                ],
+                                "properties": {
+                                    "category": {
+                                        "type": "string",
+                                        "example": "PAN"
+                                    },
+                                    "value": {
+                                        "type": "string",
+                                        "example": "ABCDE1234F"
+                                    },
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "Fraudulent application history"
+                                    },
+                                    "severity": {
+                                        "type": "string",
+                                        "example": "High"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -157,6 +191,25 @@
                         "required": true
                     }
                 ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "reason"
+                                ],
+                                "properties": {
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "False positive, verified by support."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -183,6 +236,30 @@
                         "required": true
                     }
                 ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "override_approved_by",
+                                    "reason"
+                                ],
+                                "properties": {
+                                    "override_approved_by": {
+                                        "type": "integer",
+                                        "example": 3
+                                    },
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "Management exception for enterprise client."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -431,16 +508,14 @@
                     }
                 ],
                 "requestBody": {
-                    "description": "Optional. ID of another existing category to reassign all products to before archiving. If provided, the ID must exist in the categories table.",
-                    "required": false,
+                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "properties": {
                                     "reassign_to": {
-                                        "description": "Must be a valid existing Category ID",
                                         "type": "integer",
-                                        "example": null
+                                        "example": 2
                                     }
                                 },
                                 "type": "object"
@@ -542,6 +617,25 @@
                         "required": true
                     }
                 ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "agent_id"
+                                ],
+                                "properties": {
+                                    "agent_id": {
+                                        "type": "integer",
+                                        "example": 12
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -613,6 +707,25 @@
                         "required": true
                     }
                 ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "npa_status"
+                                ],
+                                "properties": {
+                                    "npa_status": {
+                                        "type": "string",
+                                        "example": "Settled"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -632,6 +745,25 @@
                 ],
                 "summary": "generateReturn ComplianceReport",
                 "operationId": "381995c41d4cc0b828e8eaf2924694ae",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "report_type"
+                                ],
+                                "properties": {
+                                    "report_type": {
+                                        "type": "string",
+                                        "example": "Quarterly Disbursal Return"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -677,6 +809,30 @@
                         "required": true
                     }
                 ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "status",
+                                    "resolution_notes"
+                                ],
+                                "properties": {
+                                    "status": {
+                                        "type": "string",
+                                        "example": "Completed"
+                                    },
+                                    "resolution_notes": {
+                                        "type": "string",
+                                        "example": "Customer data successfully removed."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -713,6 +869,26 @@
                 ],
                 "summary": "updateDataMaskingPolicy ComplianceReport",
                 "operationId": "24d09628819b1026ab6b274f5561133e",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "policies": {
+                                        "type": "object",
+                                        "example": {
+                                            "customer_service": {
+                                                "mask_pan": true
+                                            }
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -749,6 +925,24 @@
                 ],
                 "summary": "updateRetentionPolicy ComplianceReport",
                 "operationId": "35dd66a32b7feeb775dc2956e70b95cb",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "policies": {
+                                        "type": "object",
+                                        "example": {
+                                            "audit_logs": "10 years"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -813,6 +1007,25 @@
                         "required": true
                     }
                 ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "reason"
+                                ],
+                                "properties": {
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "Customer requested data deletion under DPDP act."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -901,6 +1114,25 @@
                 ],
                 "summary": "triggerBatchDisbursal DisbursalSettlement",
                 "operationId": "2ded653309bb59efb944d8c5d20e899a",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "lender_id"
+                                ],
+                                "properties": {
+                                    "lender_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -998,6 +1230,25 @@
                         "required": true
                     }
                 ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "reason"
+                                ],
+                                "properties": {
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "Amount mismatched in settlement."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -1069,24 +1320,6 @@
                         "required": true
                     }
                 ],
-                "requestBody": {
-                    "description": "Optional. ID of another existing category to reassign all products to before archiving. If provided, the ID must exist in the categories table.",
-                    "required": false,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "reassign_to": {
-                                        "description": "Must be a valid existing Category ID",
-                                        "type": "integer",
-                                        "example": null
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -1766,6 +1999,32 @@
                 ],
                 "summary": "saveFilter LoanApplication",
                 "operationId": "9a06508029c25814843325c55fe4810d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "name",
+                                    "filter_payload"
+                                ],
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "High Risk Loans"
+                                    },
+                                    "filter_payload": {
+                                        "type": "object",
+                                        "example": {
+                                            "status": "pending"
+                                        }
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -1896,6 +2155,30 @@
                         "required": true
                     }
                 ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "reason",
+                                    "approved_by_secondary"
+                                ],
+                                "properties": {
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "Customer escalated to VIP support"
+                                    },
+                                    "approved_by_secondary": {
+                                        "type": "integer",
+                                        "example": 2
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -1922,6 +2205,30 @@
                         "required": true
                     }
                 ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "new_lender_id",
+                                    "reason"
+                                ],
+                                "properties": {
+                                    "new_lender_id": {
+                                        "type": "integer",
+                                        "example": 3
+                                    },
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "First lender rejected due to internal policy, rerouting to secondary."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -1948,6 +2255,30 @@
                         "required": true
                     }
                 ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "bank_account_verified",
+                                    "reason"
+                                ],
+                                "properties": {
+                                    "bank_account_verified": {
+                                        "type": "boolean",
+                                        "example": true
+                                    },
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "Manual bank statement verification completed."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -1974,6 +2305,30 @@
                         "required": true
                     }
                 ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "reason",
+                                    "finance_approved_by"
+                                ],
+                                "properties": {
+                                    "reason": {
+                                        "type": "string",
+                                        "example": "Customer requested cancellation within cooling-off period."
+                                    },
+                                    "finance_approved_by": {
+                                        "type": "integer",
+                                        "example": 5
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -2045,6 +2400,25 @@
                         "required": true
                     }
                 ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "decision"
+                                ],
+                                "properties": {
+                                    "decision": {
+                                        "type": "string",
+                                        "example": "Approved"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -2834,6 +3208,48 @@
                 ],
                 "summary": "store RiskRule",
                 "operationId": "a5e275bd9b309ae03c7a27eb5957c7f2",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "rule_type",
+                                    "name",
+                                    "parameters",
+                                    "threshold",
+                                    "action"
+                                ],
+                                "properties": {
+                                    "rule_type": {
+                                        "type": "string",
+                                        "example": "velocity"
+                                    },
+                                    "name": {
+                                        "type": "string",
+                                        "example": "High volume of applications"
+                                    },
+                                    "parameters": {
+                                        "type": "object",
+                                        "example": {
+                                            "timeframe_hours": 24,
+                                            "count": 5
+                                        }
+                                    },
+                                    "threshold": {
+                                        "type": "number",
+                                        "example": 0.95
+                                    },
+                                    "action": {
+                                        "type": "string",
+                                        "example": "flag"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -2860,6 +3276,22 @@
                         "required": true
                     }
                 ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "threshold": {
+                                        "type": "number",
+                                        "example": 0.85
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -2879,6 +3311,26 @@
                 ],
                 "summary": "simulate RiskRule",
                 "operationId": "2db80edcbabd4627f12574e42af9ce16",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "rule_id": {
+                                        "type": "integer",
+                                        "example": 1
+                                    },
+                                    "dataset_days": {
+                                        "type": "integer",
+                                        "example": 30
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -3175,6 +3627,136 @@
                         "sanctum": []
                     }
                 ]
+            }
+        },
+        "/api/v1/auth/mfa/verify": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Verify MFA OTP",
+                "operationId": "90922a31532658a589125c677a60e036",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "otp": {
+                                        "type": "string",
+                                        "example": "123456"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auth/mfa/resend": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Resend MFA OTP",
+                "operationId": "1ecacef4bb070e6f7ecf26697e46340a",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auth/forgot-password": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Send Password Reset Link",
+                "operationId": "ffa97a1acf47fce6b507c2fe6d44e004",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "finzwork10@gmail.com"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/reset-password": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Reset Password",
+                "operationId": "6df250495fd73e70352e2ceb3555da3f",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "finzwork10@gmail.com"
+                                    },
+                                    "token": {
+                                        "type": "string",
+                                        "example": "your-reset-token-here"
+                                    },
+                                    "password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "New@password123"
+                                    },
+                                    "password_confirmation": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "New@password123"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                }
             }
         },
         "/api/v1/admin/pricing/emi-types": {

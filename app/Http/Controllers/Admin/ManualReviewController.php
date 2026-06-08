@@ -56,6 +56,15 @@ class ManualReviewController extends Controller
         parameters: [
             new OA\Parameter(name: "id", in: "path", required: true)
         ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["decision"],
+                properties: [
+                    new OA\Property(property: "decision", type: "string", example: "Approved")
+                ]
+            )
+        ),
         responses: [
             new OA\Response(response: 200, description: "Success")
         ]

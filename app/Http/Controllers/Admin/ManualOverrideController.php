@@ -20,6 +20,16 @@ class ManualOverrideController extends Controller
         parameters: [
             new OA\Parameter(name: "id", in: "path", required: true)
         ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["reason", "approved_by_secondary"],
+                properties: [
+                    new OA\Property(property: "reason", type: "string", example: "Customer escalated to VIP support"),
+                    new OA\Property(property: "approved_by_secondary", type: "integer", example: 2)
+                ]
+            )
+        ),
         responses: [
             new OA\Response(response: 200, description: "Success")
         ]
@@ -47,6 +57,16 @@ class ManualOverrideController extends Controller
         parameters: [
             new OA\Parameter(name: "id", in: "path", required: true)
         ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["new_lender_id", "reason"],
+                properties: [
+                    new OA\Property(property: "new_lender_id", type: "integer", example: 3),
+                    new OA\Property(property: "reason", type: "string", example: "First lender rejected due to internal policy, rerouting to secondary.")
+                ]
+            )
+        ),
         responses: [
             new OA\Response(response: 200, description: "Success")
         ]
@@ -75,6 +95,16 @@ class ManualOverrideController extends Controller
         parameters: [
             new OA\Parameter(name: "id", in: "path", required: true)
         ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["bank_account_verified", "reason"],
+                properties: [
+                    new OA\Property(property: "bank_account_verified", type: "boolean", example: true),
+                    new OA\Property(property: "reason", type: "string", example: "Manual bank statement verification completed.")
+                ]
+            )
+        ),
         responses: [
             new OA\Response(response: 200, description: "Success")
         ]
@@ -109,6 +139,16 @@ class ManualOverrideController extends Controller
         parameters: [
             new OA\Parameter(name: "id", in: "path", required: true)
         ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["reason", "finance_approved_by"],
+                properties: [
+                    new OA\Property(property: "reason", type: "string", example: "Customer requested cancellation within cooling-off period."),
+                    new OA\Property(property: "finance_approved_by", type: "integer", example: 5)
+                ]
+            )
+        ),
         responses: [
             new OA\Response(response: 200, description: "Success")
         ]

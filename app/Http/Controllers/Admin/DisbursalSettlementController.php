@@ -37,6 +37,15 @@ class DisbursalSettlementController extends Controller
         summary: "triggerBatchDisbursal DisbursalSettlement",
         security: [["sanctum" => []]],
         tags: ["DisbursalSettlement"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["lender_id"],
+                properties: [
+                    new OA\Property(property: "lender_id", type: "integer", example: 1)
+                ]
+            )
+        ),
         responses: [
             new OA\Response(response: 200, description: "Success")
         ]
@@ -113,6 +122,15 @@ class DisbursalSettlementController extends Controller
         parameters: [
             new OA\Parameter(name: "entry_id", in: "path", required: true)
         ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["reason"],
+                properties: [
+                    new OA\Property(property: "reason", type: "string", example: "Amount mismatched in settlement.")
+                ]
+            )
+        ),
         responses: [
             new OA\Response(response: 200, description: "Success")
         ]
@@ -121,13 +139,15 @@ class DisbursalSettlementController extends Controller
     {
         $request->validate(['reason' => 'required|string']);
 
+        $entry = SettlementEntry::findOrFail($entry_id);
+
         $dispute = SettlementDispute::create([
-            'settlement_entry_id' => $entry_id,
+            'settlement_entry_id' => $entry->id,
             'reason' => $request->reason,
             'status' => 'Open'
         ]);
 
-        SettlementEntry::where('id', $entry_id)->update(['status' => 'disputed']);
+        $entry->update(['status' => 'disputed']);
 
         return response()->json(['message' => 'Dispute logged successfully', 'dispute' => $dispute]);
     }

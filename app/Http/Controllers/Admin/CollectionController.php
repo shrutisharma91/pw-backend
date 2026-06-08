@@ -41,6 +41,15 @@ class CollectionController extends Controller
         parameters: [
             new OA\Parameter(name: "id", in: "path", required: true)
         ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["agent_id"],
+                properties: [
+                    new OA\Property(property: "agent_id", type: "integer", example: 12)
+                ]
+            )
+        ),
         responses: [
             new OA\Response(response: 200, description: "Success")
         ]
@@ -101,6 +110,15 @@ class CollectionController extends Controller
         parameters: [
             new OA\Parameter(name: "id", in: "path", required: true)
         ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["npa_status"],
+                properties: [
+                    new OA\Property(property: "npa_status", type: "string", example: "Settled")
+                ]
+            )
+        ),
         responses: [
             new OA\Response(response: 200, description: "Success")
         ]

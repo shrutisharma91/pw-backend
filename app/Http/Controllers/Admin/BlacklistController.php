@@ -35,6 +35,18 @@ class BlacklistController extends Controller
         summary: "store Blacklist",
         security: [["sanctum" => []]],
         tags: ["Blacklist"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["category", "value", "reason", "severity"],
+                properties: [
+                    new OA\Property(property: "category", type: "string", example: "PAN"),
+                    new OA\Property(property: "value", type: "string", example: "ABCDE1234F"),
+                    new OA\Property(property: "reason", type: "string", example: "Fraudulent application history"),
+                    new OA\Property(property: "severity", type: "string", example: "High")
+                ]
+            )
+        ),
         responses: [
             new OA\Response(response: 200, description: "Success")
         ]
@@ -76,6 +88,15 @@ class BlacklistController extends Controller
         parameters: [
             new OA\Parameter(name: "id", in: "path", required: true)
         ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["reason"],
+                properties: [
+                    new OA\Property(property: "reason", type: "string", example: "False positive, verified by support.")
+                ]
+            )
+        ),
         responses: [
             new OA\Response(response: 200, description: "Success")
         ]
@@ -101,6 +122,16 @@ class BlacklistController extends Controller
         parameters: [
             new OA\Parameter(name: "id", in: "path", required: true)
         ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["override_approved_by", "reason"],
+                properties: [
+                    new OA\Property(property: "override_approved_by", type: "integer", example: 3),
+                    new OA\Property(property: "reason", type: "string", example: "Management exception for enterprise client.")
+                ]
+            )
+        ),
         responses: [
             new OA\Response(response: 200, description: "Success")
         ]

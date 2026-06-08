@@ -17,6 +17,15 @@ class ComplianceReportController extends Controller
         summary: "generateReturn ComplianceReport",
         security: [["sanctum" => []]],
         tags: ["ComplianceReport"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["report_type"],
+                properties: [
+                    new OA\Property(property: "report_type", type: "string", example: "Quarterly Disbursal Return")
+                ]
+            )
+        ),
         responses: [
             new OA\Response(response: 200, description: "Success")
         ]
@@ -57,6 +66,16 @@ class ComplianceReportController extends Controller
         parameters: [
             new OA\Parameter(name: "id", in: "path", required: true)
         ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["status", "resolution_notes"],
+                properties: [
+                    new OA\Property(property: "status", type: "string", example: "Completed"),
+                    new OA\Property(property: "resolution_notes", type: "string", example: "Customer data successfully removed.")
+                ]
+            )
+        ),
         responses: [
             new OA\Response(response: 200, description: "Success")
         ]
@@ -119,6 +138,14 @@ class ComplianceReportController extends Controller
         summary: "updateDataMaskingPolicy ComplianceReport",
         security: [["sanctum" => []]],
         tags: ["ComplianceReport"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "policies", type: "object", example: ["customer_service" => ["mask_pan" => true]])
+                ]
+            )
+        ),
         responses: [
             new OA\Response(response: 200, description: "Success")
         ]
@@ -134,6 +161,14 @@ class ComplianceReportController extends Controller
         summary: "updateRetentionPolicy ComplianceReport",
         security: [["sanctum" => []]],
         tags: ["ComplianceReport"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "policies", type: "object", example: ["audit_logs" => "10 years"])
+                ]
+            )
+        ),
         responses: [
             new OA\Response(response: 200, description: "Success")
         ]

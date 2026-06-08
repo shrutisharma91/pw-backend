@@ -78,6 +78,16 @@ class LoanApplicationController extends Controller
         summary: "saveFilter LoanApplication",
         security: [["sanctum" => []]],
         tags: ["LoanApplication"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["name", "filter_payload"],
+                properties: [
+                    new OA\Property(property: "name", type: "string", example: "High Risk Loans"),
+                    new OA\Property(property: "filter_payload", type: "object", example: ["status" => "pending"])
+                ]
+            )
+        ),
         responses: [
             new OA\Response(response: 200, description: "Success")
         ]
