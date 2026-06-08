@@ -12,6 +12,189 @@
         }
     ],
     "paths": {
+        "/api/v1/admin/audit-trails": {
+            "get": {
+                "tags": [
+                    "AuditTrail"
+                ],
+                "summary": "index AuditTrail",
+                "operationId": "322744163e131c3ca28086a60086bca3",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/audit-trails/export": {
+            "get": {
+                "tags": [
+                    "AuditTrail"
+                ],
+                "summary": "export AuditTrail",
+                "operationId": "a991b90cabdf29922d4510b51394860e",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/audit-trails/anomalies": {
+            "get": {
+                "tags": [
+                    "AuditTrail"
+                ],
+                "summary": "detectAnomalies AuditTrail",
+                "operationId": "471694446b2536fe3081512934805409",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/audit-trails/verify-hash": {
+            "post": {
+                "tags": [
+                    "AuditTrail"
+                ],
+                "summary": "verifyHashChain AuditTrail",
+                "operationId": "6b098b1a807167b68cd48d6e4a67f204",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/blacklist": {
+            "get": {
+                "tags": [
+                    "Blacklist"
+                ],
+                "summary": "index Blacklist",
+                "operationId": "ea923a7b8bb096effd7c2b680c1629b0",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Blacklist"
+                ],
+                "summary": "store Blacklist",
+                "operationId": "7b8cbff79b0b4f07cb5a4524bb908044",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/blacklist/bulk-import": {
+            "post": {
+                "tags": [
+                    "Blacklist"
+                ],
+                "summary": "bulkImport Blacklist",
+                "operationId": "b7c83b89922a30231cbd1b151cedca96",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/blacklist/{id}/remove": {
+            "post": {
+                "tags": [
+                    "Blacklist"
+                ],
+                "summary": "remove Blacklist",
+                "operationId": "d69383d2fbc2e3aee1f6efa053dd65fc",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/blacklist/{id}/whitelist-override": {
+            "post": {
+                "tags": [
+                    "Blacklist"
+                ],
+                "summary": "whitelistOverride Blacklist",
+                "operationId": "dfd34ccbd08a68d20f3ea6f42baa1040",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/api/v1/admin/brands": {
             "get": {
                 "tags": [
@@ -248,14 +431,16 @@
                     }
                 ],
                 "requestBody": {
-                    "required": true,
+                    "description": "Optional. ID of another existing category to reassign all products to before archiving. If provided, the ID must exist in the categories table.",
+                    "required": false,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "properties": {
                                     "reassign_to": {
+                                        "description": "Must be a valid existing Category ID",
                                         "type": "integer",
-                                        "example": 2
+                                        "example": null
                                     }
                                 },
                                 "type": "object"
@@ -312,6 +497,641 @@
                         }
                     }
                 },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/collections": {
+            "get": {
+                "tags": [
+                    "Collection"
+                ],
+                "summary": "index Collection",
+                "operationId": "2b5198fa43fda394cee2d25a25d75980",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/collections/{id}/assign-agent": {
+            "post": {
+                "tags": [
+                    "Collection"
+                ],
+                "summary": "assignAgent Collection",
+                "operationId": "780f2e1cc46640ff385553b39d5a98b5",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/collections/bounces": {
+            "get": {
+                "tags": [
+                    "Collection"
+                ],
+                "summary": "bounceFeed Collection",
+                "operationId": "2c00d0eca8a14a3dc6950ece362a1709",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/collections/bounces/{id}/retry": {
+            "post": {
+                "tags": [
+                    "Collection"
+                ],
+                "summary": "retryBounce Collection",
+                "operationId": "35e2e18dccad0aa607eefe8083e0cee3",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/collections/{id}/npa-status": {
+            "post": {
+                "tags": [
+                    "Collection"
+                ],
+                "summary": "setNpaStatus Collection",
+                "operationId": "7f80155a656275cbfa3987ecfda8acb0",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/compliance/returns": {
+            "post": {
+                "tags": [
+                    "ComplianceReport"
+                ],
+                "summary": "generateReturn ComplianceReport",
+                "operationId": "381995c41d4cc0b828e8eaf2924694ae",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/compliance/dpdp-requests": {
+            "get": {
+                "tags": [
+                    "ComplianceReport"
+                ],
+                "summary": "dpdpRequests ComplianceReport",
+                "operationId": "09b5a3b0db4d7179c9f6b1c1b37615c5",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/compliance/dpdp-requests/{id}/resolve": {
+            "post": {
+                "tags": [
+                    "ComplianceReport"
+                ],
+                "summary": "resolveDpdpRequest ComplianceReport",
+                "operationId": "1434cd0edb54aa7abf49343c7466c8f3",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/compliance/data-masking-policy": {
+            "get": {
+                "tags": [
+                    "ComplianceReport"
+                ],
+                "summary": "dataMaskingPolicy ComplianceReport",
+                "operationId": "fd1424eff5edc0c3086ccf2b94ec76d0",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "ComplianceReport"
+                ],
+                "summary": "updateDataMaskingPolicy ComplianceReport",
+                "operationId": "24d09628819b1026ab6b274f5561133e",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/compliance/retention-policy": {
+            "get": {
+                "tags": [
+                    "ComplianceReport"
+                ],
+                "summary": "retentionPolicy ComplianceReport",
+                "operationId": "2fc264a4ee5b5ca6e365ae18beef6f44",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "ComplianceReport"
+                ],
+                "summary": "updateRetentionPolicy ComplianceReport",
+                "operationId": "35dd66a32b7feeb775dc2956e70b95cb",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/compliance/dashboard": {
+            "get": {
+                "tags": [
+                    "ComplianceReport"
+                ],
+                "summary": "dashboard ComplianceReport",
+                "operationId": "4d173736385ee2ce20328be35945070d",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/consents": {
+            "get": {
+                "tags": [
+                    "ConsentLog"
+                ],
+                "summary": "index ConsentLog",
+                "operationId": "dfb35fd29f943267e7942f150544106d",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/consents/{id}/withdraw": {
+            "post": {
+                "tags": [
+                    "ConsentLog"
+                ],
+                "summary": "withdraw ConsentLog",
+                "operationId": "da927bd851ee4347507583193b1f2f48",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/consents/{id}/diff/{compare_id}": {
+            "get": {
+                "tags": [
+                    "ConsentLog"
+                ],
+                "summary": "diff ConsentLog",
+                "operationId": "43ce7f6c5c4c739dce16cc0171b5b0c0",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "name": "compare_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/consents/export": {
+            "get": {
+                "tags": [
+                    "ConsentLog"
+                ],
+                "summary": "export ConsentLog",
+                "operationId": "fb04d75701ff02f1d2cb5d39bfa30eb9",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/disbursals/pending": {
+            "get": {
+                "tags": [
+                    "DisbursalSettlement"
+                ],
+                "summary": "pendingDisbursals DisbursalSettlement",
+                "operationId": "cd9a437aebc0f7556d2c6a9c58a7cadd",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/disbursals/trigger-batch": {
+            "post": {
+                "tags": [
+                    "DisbursalSettlement"
+                ],
+                "summary": "triggerBatchDisbursal DisbursalSettlement",
+                "operationId": "2ded653309bb59efb944d8c5d20e899a",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/settlements/batches": {
+            "get": {
+                "tags": [
+                    "DisbursalSettlement"
+                ],
+                "summary": "settlementBatches DisbursalSettlement",
+                "operationId": "8bab8aaeb9d81b3f5fd38607e38eec4a",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/settlements/batches/{batch_id}/entries": {
+            "get": {
+                "tags": [
+                    "DisbursalSettlement"
+                ],
+                "summary": "settlementEntries DisbursalSettlement",
+                "operationId": "3f0b18c0a6d75a12f75763757fd3278e",
+                "parameters": [
+                    {
+                        "name": "batch_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/settlements/batches/{batch_id}/download": {
+            "get": {
+                "tags": [
+                    "DisbursalSettlement"
+                ],
+                "summary": "downloadSettlement DisbursalSettlement",
+                "operationId": "f338e0f611a8747a59de0833ca31465f",
+                "parameters": [
+                    {
+                        "name": "batch_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/settlements/entries/{entry_id}/dispute": {
+            "post": {
+                "tags": [
+                    "DisbursalSettlement"
+                ],
+                "summary": "disputeSettlement DisbursalSettlement",
+                "operationId": "30d7c9d086262ab1ddf0613b7d245886",
+                "parameters": [
+                    {
+                        "name": "entry_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/fraud-alerts": {
+            "get": {
+                "tags": [
+                    "FraudAlert"
+                ],
+                "summary": "index FraudAlert",
+                "operationId": "1c101bfe14cfe4edb6dedaf594f8a9bb",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/fraud-alerts/{id}/block": {
+            "post": {
+                "tags": [
+                    "FraudAlert"
+                ],
+                "summary": "block FraudAlert",
+                "operationId": "e9a60b367893f342406b5e58c0b9d7db",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/fraud-alerts/{id}/unblock": {
+            "post": {
+                "tags": [
+                    "FraudAlert"
+                ],
+                "summary": "unblock FraudAlert",
+                "operationId": "660c1651cc9b671eebf355bb7072e474",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "requestBody": {
+                    "description": "Optional. ID of another existing category to reassign all products to before archiving. If provided, the ID must exist in the categories table.",
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "reassign_to": {
+                                        "description": "Must be a valid existing Category ID",
+                                        "type": "integer",
+                                        "example": null
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/fraud-alerts/{id}/escalate": {
+            "post": {
+                "tags": [
+                    "FraudAlert"
+                ],
+                "summary": "escalate FraudAlert",
+                "operationId": "49f932969c5c7f52cc792f90d6b99dac",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/fraud-alerts/stats/heatmap": {
+            "get": {
+                "tags": [
+                    "FraudAlert"
+                ],
+                "summary": "heatmap FraudAlert",
+                "operationId": "808744af97e6e403889a17dba026052a",
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -875,6 +1695,385 @@
                 "responses": {
                     "200": {
                         "description": "Simulation Result"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/loans": {
+            "get": {
+                "tags": [
+                    "LoanApplication"
+                ],
+                "summary": "index LoanApplication",
+                "operationId": "86b03b709a47b89507387317f02b50af",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/loans/export": {
+            "get": {
+                "tags": [
+                    "LoanApplication"
+                ],
+                "summary": "export LoanApplication",
+                "operationId": "070fa3d543c18deafc4fd7b83c1b31c4",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/loans/saved-filters": {
+            "get": {
+                "tags": [
+                    "LoanApplication"
+                ],
+                "summary": "getSavedFilters LoanApplication",
+                "operationId": "226d66bac8f89d1de5a450af0b89dd3c",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "LoanApplication"
+                ],
+                "summary": "saveFilter LoanApplication",
+                "operationId": "9a06508029c25814843325c55fe4810d",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/loans/{id}": {
+            "get": {
+                "tags": [
+                    "LoanApplication"
+                ],
+                "summary": "show LoanApplication",
+                "operationId": "e99d4786dc7c7ec3ad0439d69a9c0c25",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/loans/{id}/timeline": {
+            "get": {
+                "tags": [
+                    "LoanApplication"
+                ],
+                "summary": "timeline LoanApplication",
+                "operationId": "adc72b23030a4815989d7b63b81e27b1",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/loans/{id}/documents": {
+            "get": {
+                "tags": [
+                    "LoanApplication"
+                ],
+                "summary": "documents LoanApplication",
+                "operationId": "66f2f07cac817a6fe4b9420a4548c0de",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/loans/{id}/communications": {
+            "get": {
+                "tags": [
+                    "LoanApplication"
+                ],
+                "summary": "communications LoanApplication",
+                "operationId": "75f44548f9cae5620d240ec1881a5046",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/loans/overrides/{id}/force-approve": {
+            "post": {
+                "tags": [
+                    "ManualOverride"
+                ],
+                "summary": "forceApprove ManualOverride",
+                "operationId": "8924e5b1960583b415b48302ca967b01",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/loans/overrides/{id}/override-rejection": {
+            "post": {
+                "tags": [
+                    "ManualOverride"
+                ],
+                "summary": "overrideRejection ManualOverride",
+                "operationId": "995e01b6c5b1b8c4a3bb5edb50dee34d",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/loans/overrides/{id}/trigger-disbursal": {
+            "post": {
+                "tags": [
+                    "ManualOverride"
+                ],
+                "summary": "triggerDisbursal ManualOverride",
+                "operationId": "95bf0ca9cb19f9183a91323f211d7ba9",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/loans/overrides/{id}/refund": {
+            "post": {
+                "tags": [
+                    "ManualOverride"
+                ],
+                "summary": "refund ManualOverride",
+                "operationId": "154776b640441670f2beb8e5e5a0a954",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/manual-reviews": {
+            "get": {
+                "tags": [
+                    "ManualReview"
+                ],
+                "summary": "index ManualReview",
+                "operationId": "eaa724c488e77470adc6600a3711a4b4",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/manual-reviews/{id}": {
+            "get": {
+                "tags": [
+                    "ManualReview"
+                ],
+                "summary": "show ManualReview",
+                "operationId": "15bf2365fb71ba497071d99e7e951635",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/manual-reviews/{id}/decide": {
+            "post": {
+                "tags": [
+                    "ManualReview"
+                ],
+                "summary": "decide ManualReview",
+                "operationId": "b94d1512c5bf32619ac2a3cc1d5caf3b",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/manual-reviews/scorecard/{reviewer_id}": {
+            "get": {
+                "tags": [
+                    "ManualReview"
+                ],
+                "summary": "scorecard ManualReview",
+                "operationId": "c244d76479e60af8bb5b21fbac185cd0",
+                "parameters": [
+                    {
+                        "name": "reviewer_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
                     }
                 },
                 "security": [
@@ -1611,6 +2810,87 @@
                 ]
             }
         },
+        "/api/v1/admin/risk-rules": {
+            "get": {
+                "tags": [
+                    "RiskRule"
+                ],
+                "summary": "index RiskRule",
+                "operationId": "1bd779d89623bde4647b8c59da12f768",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "RiskRule"
+                ],
+                "summary": "store RiskRule",
+                "operationId": "a5e275bd9b309ae03c7a27eb5957c7f2",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/risk-rules/{id}": {
+            "put": {
+                "tags": [
+                    "RiskRule"
+                ],
+                "summary": "update RiskRule",
+                "operationId": "3b3612af7c6d9b8c05c72fa8ff87e4d6",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/risk-rules/simulate": {
+            "post": {
+                "tags": [
+                    "RiskRule"
+                ],
+                "summary": "simulate RiskRule",
+                "operationId": "2db80edcbabd4627f12574e42af9ce16",
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/api/v1/admin/stores": {
             "get": {
                 "tags": [
@@ -1895,136 +3175,6 @@
                         "sanctum": []
                     }
                 ]
-            }
-        },
-        "/api/v1/auth/mfa/verify": {
-            "post": {
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Verify MFA OTP",
-                "operationId": "90922a31532658a589125c677a60e036",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "otp": {
-                                        "type": "string",
-                                        "example": "123456"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Success"
-                    }
-                },
-                "security": [
-                    {
-                        "sanctum": []
-                    }
-                ]
-            }
-        },
-        "/api/v1/auth/mfa/resend": {
-            "post": {
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Resend MFA OTP",
-                "operationId": "1ecacef4bb070e6f7ecf26697e46340a",
-                "responses": {
-                    "200": {
-                        "description": "Success"
-                    }
-                },
-                "security": [
-                    {
-                        "sanctum": []
-                    }
-                ]
-            }
-        },
-        "/api/v1/auth/forgot-password": {
-            "post": {
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Send Password Reset Link",
-                "operationId": "ffa97a1acf47fce6b507c2fe6d44e004",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "email": {
-                                        "type": "string",
-                                        "format": "email",
-                                        "example": "finzwork10@gmail.com"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Success"
-                    }
-                }
-            }
-        },
-        "/api/v1/auth/reset-password": {
-            "post": {
-                "tags": [
-                    "Auth"
-                ],
-                "summary": "Reset Password",
-                "operationId": "6df250495fd73e70352e2ceb3555da3f",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "email": {
-                                        "type": "string",
-                                        "format": "email",
-                                        "example": "finzwork10@gmail.com"
-                                    },
-                                    "token": {
-                                        "type": "string",
-                                        "example": "your-reset-token-here"
-                                    },
-                                    "password": {
-                                        "type": "string",
-                                        "format": "password",
-                                        "example": "New@password123"
-                                    },
-                                    "password_confirmation": {
-                                        "type": "string",
-                                        "format": "password",
-                                        "example": "New@password123"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Success"
-                    }
-                }
             }
         },
         "/api/v1/admin/pricing/emi-types": {
@@ -2757,12 +3907,40 @@
     },
     "tags": [
         {
+            "name": "AuditTrail",
+            "description": "AuditTrail"
+        },
+        {
+            "name": "Blacklist",
+            "description": "Blacklist"
+        },
+        {
             "name": "Brand",
             "description": "Brand"
         },
         {
             "name": "Category",
             "description": "Category"
+        },
+        {
+            "name": "Collection",
+            "description": "Collection"
+        },
+        {
+            "name": "ComplianceReport",
+            "description": "ComplianceReport"
+        },
+        {
+            "name": "ConsentLog",
+            "description": "ConsentLog"
+        },
+        {
+            "name": "DisbursalSettlement",
+            "description": "DisbursalSettlement"
+        },
+        {
+            "name": "FraudAlert",
+            "description": "FraudAlert"
         },
         {
             "name": "Lender",
@@ -2781,6 +3959,18 @@
             "description": "LenderWaterfall"
         },
         {
+            "name": "LoanApplication",
+            "description": "LoanApplication"
+        },
+        {
+            "name": "ManualOverride",
+            "description": "ManualOverride"
+        },
+        {
+            "name": "ManualReview",
+            "description": "ManualReview"
+        },
+        {
             "name": "MerchantAgreement",
             "description": "MerchantAgreement"
         },
@@ -2795,6 +3985,10 @@
         {
             "name": "Product",
             "description": "Product"
+        },
+        {
+            "name": "RiskRule",
+            "description": "RiskRule"
         },
         {
             "name": "Store",

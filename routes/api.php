@@ -27,6 +27,17 @@ use App\Http\Controllers\Admin\LenderSlaController;
 use App\Http\Controllers\EmiTypeController;
 use App\Http\Controllers\TenureSlabController;
 use App\Http\Controllers\OfferController;
+use App\Http\Controllers\Admin\LoanApplicationController;
+use App\Http\Controllers\Admin\ManualOverrideController;
+use App\Http\Controllers\Admin\DisbursalSettlementController;
+use App\Http\Controllers\Admin\CollectionController;
+use App\Http\Controllers\Admin\FraudAlertController;
+use App\Http\Controllers\Admin\BlacklistController;
+use App\Http\Controllers\Admin\RiskRuleController;
+use App\Http\Controllers\Admin\ManualReviewController;
+use App\Http\Controllers\Admin\AuditTrailController;
+use App\Http\Controllers\Admin\ConsentLogController;
+use App\Http\Controllers\Admin\ComplianceReportController;
 /*
 |--------------------------------------------------------------------------
 | FinZ LMS — Super Admin API Routes
@@ -278,6 +289,119 @@ Route::prefix('sessions')->group(function () {
             // Screen 32: Offer Approval Queue
             Route::post('/{id}/approve', [OfferController::class, 'approve']);
             Route::post('/{id}/reject', [OfferController::class, 'reject']);
+        });
+
+        // ----- Loan & Disbursal Management -----
+        Route::prefix('loans')->group(function () {
+            // Screen 33: Monitor
+            Route::get('/', [LoanApplicationController::class, 'index']);
+            Route::get('/export', [LoanApplicationController::class, 'export']);
+            Route::get('/saved-filters', [LoanApplicationController::class, 'getSavedFilters']);
+            Route::post('/saved-filters', [LoanApplicationController::class, 'saveFilter']);
+            
+            // Screen 34: Detail & Timeline
+            Route::get('/{id}', [LoanApplicationController::class, 'show']);
+            Route::get('/{id}/timeline', [LoanApplicationController::class, 'timeline']);
+            Route::get('/{id}/documents', [LoanApplicationController::class, 'documents']);
+            Route::get('/{id}/communications', [LoanApplicationController::class, 'communications']);
+        });
+
+        Route::prefix('loans/overrides')->group(function () {
+            // Screen 35: Manual Override Console
+            Route::post('/{id}/force-approve', [ManualOverrideController::class, 'forceApprove']);
+            Route::post('/{id}/override-rejection', [ManualOverrideController::class, 'overrideRejection']);
+            Route::post('/{id}/trigger-disbursal', [ManualOverrideController::class, 'triggerDisbursal']);
+            Route::post('/{id}/refund', [ManualOverrideController::class, 'refund']);
+        });
+
+        Route::prefix('disbursals')->group(function () {
+            // Screen 36: Disbursal Queue
+            Route::get('/pending', [DisbursalSettlementController::class, 'pendingDisbursals']);
+            Route::post('/trigger-batch', [DisbursalSettlementController::class, 'triggerBatchDisbursal']);
+        });
+
+        Route::prefix('settlements')->group(function () {
+            // Screen 36: Settlement Reconciliation
+            Route::get('/batches', [DisbursalSettlementController::class, 'settlementBatches']);
+            Route::get('/batches/{batch_id}/entries', [DisbursalSettlementController::class, 'settlementEntries']);
+            Route::get('/batches/{batch_id}/download', [DisbursalSettlementController::class, 'downloadSettlement']);
+            Route::post('/entries/{entry_id}/dispute', [DisbursalSettlementController::class, 'disputeSettlement']);
+        });
+
+        Route::prefix('collections')->group(function () {
+            // Screen 37: Collections & Bounce Management
+            Route::get('/', [CollectionController::class, 'index']);
+            Route::post('/{id}/assign-agent', [CollectionController::class, 'assignAgent']);
+            Route::post('/{id}/npa-status', [CollectionController::class, 'setNpaStatus']);
+            
+            Route::get('/bounces', [CollectionController::class, 'bounceFeed']);
+            Route::post('/bounces/{id}/retry', [CollectionController::class, 'retryBounce']);
+        });
+
+        // ----- Risk & Fraud -----
+        Route::prefix('fraud-alerts')->group(function () {
+            // Screen 38: Fraud Alert Feed
+            Route::get('/', [FraudAlertController::class, 'index']);
+            Route::post('/{id}/block', [FraudAlertController::class, 'block']);
+            Route::post('/{id}/unblock', [FraudAlertController::class, 'unblock']);
+            Route::post('/{id}/escalate', [FraudAlertController::class, 'escalate']);
+            Route::get('/stats/heatmap', [FraudAlertController::class, 'heatmap']);
+        });
+
+        Route::prefix('blacklist')->group(function () {
+            // Screen 39: Blacklist Manager
+            Route::get('/', [BlacklistController::class, 'index']);
+            Route::post('/', [BlacklistController::class, 'store']);
+            Route::post('/bulk-import', [BlacklistController::class, 'bulkImport']);
+            Route::post('/{id}/remove', [BlacklistController::class, 'remove']);
+            Route::post('/{id}/whitelist-override', [BlacklistController::class, 'whitelistOverride']);
+        });
+
+        Route::prefix('risk-rules')->group(function () {
+            // Screen 40: Velocity & Risk Rules
+            Route::get('/', [RiskRuleController::class, 'index']);
+            Route::post('/', [RiskRuleController::class, 'store']);
+            Route::put('/{id}', [RiskRuleController::class, 'update']);
+            Route::post('/simulate', [RiskRuleController::class, 'simulate']);
+        });
+
+        Route::prefix('manual-reviews')->group(function () {
+            // Screen 41: Manual Review Queue
+            Route::get('/', [ManualReviewController::class, 'index']);
+            Route::get('/{id}', [ManualReviewController::class, 'show']);
+            Route::post('/{id}/decide', [ManualReviewController::class, 'decide']);
+            Route::get('/scorecard/{reviewer_id}', [ManualReviewController::class, 'scorecard']);
+        });
+
+        // ----- Compliance & Audit -----
+        Route::prefix('audit-trails')->group(function () {
+            // Screen 42: Audit Trail Explorer
+            Route::get('/', [AuditTrailController::class, 'index']);
+            Route::get('/export', [AuditTrailController::class, 'export']);
+            Route::get('/anomalies', [AuditTrailController::class, 'detectAnomalies']);
+            Route::post('/verify-hash', [AuditTrailController::class, 'verifyHashChain']);
+        });
+
+        Route::prefix('consents')->group(function () {
+            // Screen 43: Consent Log Viewer
+            Route::get('/', [ConsentLogController::class, 'index']);
+            Route::post('/{id}/withdraw', [ConsentLogController::class, 'withdraw']);
+            Route::get('/{id}/diff/{compare_id}', [ConsentLogController::class, 'diff']);
+            Route::get('/export', [ConsentLogController::class, 'export']);
+        });
+
+        Route::prefix('compliance')->group(function () {
+            // Screen 44: Compliance Reports & Exports
+            Route::post('/returns', [ComplianceReportController::class, 'generateReturn']);
+            
+            Route::get('/dpdp-requests', [ComplianceReportController::class, 'dpdpRequests']);
+            Route::post('/dpdp-requests/{id}/resolve', [ComplianceReportController::class, 'resolveDpdpRequest']);
+            
+            Route::get('/data-masking-policy', [ComplianceReportController::class, 'dataMaskingPolicy']);
+            Route::post('/data-masking-policy', [ComplianceReportController::class, 'updateDataMaskingPolicy']);
+            Route::get('/retention-policy', [ComplianceReportController::class, 'retentionPolicy']);
+            Route::post('/retention-policy', [ComplianceReportController::class, 'updateRetentionPolicy']);
+            Route::get('/dashboard', [ComplianceReportController::class, 'dashboard']);
         });
     });
 });

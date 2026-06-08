@@ -9,21 +9,10 @@ if (!$routes) {
 }
 
 $targetFiles = [
-    'app/Http/Controllers/Admin/MerchantController.php',
-    'app/Http/Controllers/Admin/VerificationLogController.php',
-    'app/Http/Controllers/Admin/MerchantAgreementController.php',
-    'app/Http/Controllers/Admin/StoreController.php',
-    'app/Http/Controllers/Admin/ProductController.php',
-    'app/Http/Controllers/Admin/CategoryController.php',
-    'app/Http/Controllers/Admin/BrandController.php',
-    'app/Http/Controllers/Admin/MerchantCategoryController.php',
-    'app/Http/Controllers/Admin/LenderController.php',
-    'app/Http/Controllers/Admin/LenderWaterfallController.php',
-    'app/Http/Controllers/Admin/LenderRuleController.php',
-    'app/Http/Controllers/Admin/LenderSlaController.php',
-    'app/Http/Controllers/EmiTypeController.php',
-    'app/Http/Controllers/TenureSlabController.php',
-    'app/Http/Controllers/OfferController.php',
+    'app/Http/Controllers/Admin/AuditTrailController.php',
+    'app/Http/Controllers/Admin/ConsentLogController.php',
+    'app/Http/Controllers/Admin/ComplianceReportController.php',
+    'app/Http/Controllers/Admin/LoanApplicationController.php',
 ];
 
 // Re-map routes by Controller@action
