@@ -27,6 +27,18 @@ use App\Http\Controllers\Admin\LenderSlaController;
 use App\Http\Controllers\EmiTypeController;
 use App\Http\Controllers\TenureSlabController;
 use App\Http\Controllers\OfferController;
+use App\Http\Controllers\Admin\BusinessAnalyticsController;
+use App\Http\Controllers\Admin\LenderAnalyticsController;
+use App\Http\Controllers\Admin\SalesAnalyticsController;
+use App\Http\Controllers\Admin\CustomReportController;
+use App\Http\Controllers\Admin\NotificationTemplateController;
+use App\Http\Controllers\Admin\CommunicationLogController;
+use App\Http\Controllers\Admin\DocumentRepositoryController;
+use App\Http\Controllers\Admin\WorkflowBuilderController;
+use App\Http\Controllers\Admin\IntegrationSwitchboardController;
+use App\Http\Controllers\Admin\FeatureFlagController;
+use App\Http\Controllers\Admin\SystemParameterController;
+use App\Http\Controllers\Admin\TicketController;
 /*
 |--------------------------------------------------------------------------
 | FinZ LMS — Super Admin API Routes
@@ -286,4 +298,178 @@ Route::prefix('sessions')->group(function () {
             Route::post('/{id}/reject', [OfferController::class, 'reject']);
         });
     });
+
+    /*
+    |--------------------------------------------------------------------------
+    | FinZ LMS — Super Admin API Routes: Phase 11, 12, 13, 14
+    |--------------------------------------------------------------------------
+    |
+    | All routes are guarded by:
+    |   - auth:admin      (JWT token issued at login)
+    |   - admin.mfa       (MFA verified in this session)
+    |   - throttle:60,1   (60 requests / minute per user)
+    |
+    | Module-level permission gates are applied inside each controller.
+    |--------------------------------------------------------------------------
+    */
+
+    Route::prefix('admin')
+        ->middleware(['auth:api', 'mfa.verified', 'throttle:60,1'])
+        ->group(function () {
+
+            // ─────────────────────────────────────────────────────────────────────
+            // PHASE 11 — Analytics & Business Intelligence
+            // Screens 45 (Business Analytics), 46 (Lender Analytics),
+            //         47 (Sales Analytics),    48 (Custom Report Builder)
+            // ─────────────────────────────────────────────────────────────────────
+
+            Route::prefix('analytics')->group(function () {
+
+                // Screen 45 — Business Analytics Dashboard
+                Route::prefix('business')->group(function () {
+                    Route::get('/',          [BusinessAnalyticsController::class, 'index']);
+                    Route::post('/snapshot', [BusinessAnalyticsController::class, 'saveSnapshot']);
+                    Route::get('/snapshots', [BusinessAnalyticsController::class, 'listSnapshots']);
+                });
+
+                // Screen 46 — Lender & Loan Analytics
+                Route::prefix('lender')->group(function () {
+                    Route::get('/',                [LenderAnalyticsController::class, 'index']);
+                    Route::get('/{id}/scorecard', [LenderAnalyticsController::class, 'scorecard'])->whereNumber('id');
+                    Route::post('/export',         [LenderAnalyticsController::class, 'export']);
+                });
+
+                // Screen 47 — Sales & Region Analytics
+                Route::prefix('sales')->group(function () {
+                    Route::get('/',                          [SalesAnalyticsController::class, 'index']);
+                    Route::get('/region/{state}/stores',     [SalesAnalyticsController::class, 'regionStores']);
+                    Route::get('/exec/{id}/pipeline',        [SalesAnalyticsController::class, 'execPipeline'])->whereNumber('id');
+                });
+            });
+
+            // Screen 48 — Custom Report Builder
+            Route::prefix('reports/custom')->group(function () {
+                Route::get('/schema',               [CustomReportController::class, 'schema']);
+                Route::get('/',                     [CustomReportController::class, 'index']);
+                Route::post('/',                    [CustomReportController::class, 'run']);
+                Route::post('/save',                [CustomReportController::class, 'save']);
+                Route::put('/{id}',                 [CustomReportController::class, 'update'])->whereNumber('id');
+                Route::post('/{id}/schedule',       [CustomReportController::class, 'schedule'])->whereNumber('id');
+                Route::post('/{id}/export',         [CustomReportController::class, 'export'])->whereNumber('id');
+                Route::get('/{id}/history',         [CustomReportController::class, 'history'])->whereNumber('id');
+                Route::delete('/{id}',              [CustomReportController::class, 'destroy'])->whereNumber('id');
+            });
+
+
+            // ─────────────────────────────────────────────────────────────────────
+            // PHASE 12 — Notifications & Document Management
+            // Screens 49 (Templates), 50 (Comm Logs), 51 (Document Repository)
+            // ─────────────────────────────────────────────────────────────────────
+
+            // Screen 49 — Notification Template Manager
+            Route::prefix('templates')->group(function () {
+                Route::get('/variables',              [NotificationTemplateController::class, 'availableVariables']);
+                Route::get('/',                       [NotificationTemplateController::class, 'index']);
+                Route::post('/',                      [NotificationTemplateController::class, 'store']);
+                Route::get('/{id}',                   [NotificationTemplateController::class, 'show'])->whereNumber('id');
+                Route::put('/{id}',                   [NotificationTemplateController::class, 'update'])->whereNumber('id');
+                Route::post('/{id}/activate',         [NotificationTemplateController::class, 'activate'])->whereNumber('id');
+                Route::post('/{id}/archive',          [NotificationTemplateController::class, 'archive'])->whereNumber('id');
+                Route::post('/{id}/rollback/{version}',[NotificationTemplateController::class, 'rollback'])->whereNumber('id')->whereNumber('version');
+                Route::get('/{id}/diff/{v1}/{v2}',    [NotificationTemplateController::class, 'diff'])->whereNumber('id')->whereNumber('v1')->whereNumber('v2');
+                Route::post('/{id}/test-send',        [NotificationTemplateController::class, 'testSend'])->whereNumber('id');
+            });
+
+            // Screen 50 — Communication Logs
+            Route::prefix('communication-logs')->group(function () {
+                Route::get('/',                      [CommunicationLogController::class, 'index']);
+                Route::get('/stats/summary',         [CommunicationLogController::class, 'summary']);
+                Route::get('/stats/daily-trend',     [CommunicationLogController::class, 'dailyTrend']);
+                Route::get('/{id}',                  [CommunicationLogController::class, 'show'])->whereNumber('id');
+                Route::post('/resend',               [CommunicationLogController::class, 'resend']);
+            });
+
+            // Screen 51 — Document Repository
+            Route::prefix('documents')->group(function () {
+                Route::get('/stats',              [DocumentRepositoryController::class, 'stats']);
+                Route::get('/',                   [DocumentRepositoryController::class, 'index']);
+                Route::get('/{id}',               [DocumentRepositoryController::class, 'show'])->whereNumber('id');
+                Route::get('/{id}/preview',       [DocumentRepositoryController::class, 'preview'])->whereNumber('id');
+                Route::post('/{id}/share',        [DocumentRepositoryController::class, 'share'])->whereNumber('id');
+                Route::post('/{id}/ocr-rerun',    [DocumentRepositoryController::class, 'rerunOcr'])->whereNumber('id');
+                Route::put('/{id}/retention',     [DocumentRepositoryController::class, 'updateRetention'])->whereNumber('id');
+                Route::delete('/{id}',            [DocumentRepositoryController::class, 'destroy'])->whereNumber('id');
+            });
+
+
+            // ─────────────────────────────────────────────────────────────────────
+            // PHASE 13 — System & Integrations
+            // Screens 52 (Workflow Builder), 53 (Integration Switchboard),
+            //         54 (Feature Flags),    55 (System Parameters)
+            // ─────────────────────────────────────────────────────────────────────
+
+            // Screen 52 — Workflow Builder
+            Route::prefix('workflows')->group(function () {
+                Route::get('/templates',               [WorkflowBuilderController::class, 'templates']);
+                Route::get('/',                        [WorkflowBuilderController::class, 'index']);
+                Route::post('/',                       [WorkflowBuilderController::class, 'store']);
+                Route::get('/{id}',                    [WorkflowBuilderController::class, 'show'])->whereNumber('id');
+                Route::put('/{id}',                    [WorkflowBuilderController::class, 'update'])->whereNumber('id');
+                Route::post('/{id}/publish',           [WorkflowBuilderController::class, 'publish'])->whereNumber('id');
+                Route::post('/{id}/archive',           [WorkflowBuilderController::class, 'archive'])->whereNumber('id');
+                Route::get('/{id}/versions',           [WorkflowBuilderController::class, 'versions'])->whereNumber('id');
+                Route::post('/{id}/rollback/{version}',[WorkflowBuilderController::class, 'rollback'])->whereNumber('id')->whereNumber('version');
+            });
+
+            // Screen 53 — Third-Party Integration Switchboard
+            Route::prefix('integrations')->group(function () {
+                Route::get('/billing/summary',             [IntegrationSwitchboardController::class, 'billingSummary']);
+                Route::get('/',                            [IntegrationSwitchboardController::class, 'index']);
+                Route::get('/{id}',                        [IntegrationSwitchboardController::class, 'show'])->whereNumber('id');
+                Route::put('/{id}',                        [IntegrationSwitchboardController::class, 'update'])->whereNumber('id');
+                Route::post('/{id}/toggle',                [IntegrationSwitchboardController::class, 'toggle'])->whereNumber('id');
+                Route::post('/{id}/health-check',          [IntegrationSwitchboardController::class, 'healthCheck'])->whereNumber('id');
+                Route::post('/health-check-all',           [IntegrationSwitchboardController::class, 'healthCheckAll']);
+                Route::put('/category/{category}/primary', [IntegrationSwitchboardController::class, 'setPrimary']);
+            });
+
+            // Screen 54 — Feature Flags & A/B Tests
+            Route::prefix('feature-flags')->group(function () {
+                Route::get('/',                        [FeatureFlagController::class, 'index']);
+                Route::post('/',                       [FeatureFlagController::class, 'store']);
+                Route::get('/{key}',                   [FeatureFlagController::class, 'show']);
+                Route::put('/{key}',                   [FeatureFlagController::class, 'update']);
+                Route::post('/{key}/kill',             [FeatureFlagController::class, 'kill']);
+                Route::post('/{key}/ab-test',          [FeatureFlagController::class, 'createAbTest']);
+                Route::get('/{key}/ab-test/results',   [FeatureFlagController::class, 'abTestResults']);
+                Route::get('/{key}/audit',             [FeatureFlagController::class, 'audit']);
+            });
+
+            // Screen 55 — System Parameters & Settings
+            Route::prefix('system')->group(function () {
+                Route::get('/parameters',          [SystemParameterController::class, 'index']);
+                Route::get('/parameters/audit',    [SystemParameterController::class, 'audit']);
+                Route::get('/parameters/{key}',    [SystemParameterController::class, 'show']);
+                Route::put('/parameters',          [SystemParameterController::class, 'update']);
+                Route::post('/maintenance',        [SystemParameterController::class, 'toggleMaintenance']);
+            });
+
+            // ─────────────────────────────────────────────────────────────────────
+            // PHASE 14 — Support & Helpdesk
+            // Screens 56 (Master Ticket Queue), 57 (Ticket Detail & SLA Tracking)
+            // ─────────────────────────────────────────────────────────────────────
+
+            Route::prefix('tickets')->group(function () {
+                Route::get('/stats',                  [TicketController::class, 'stats']);
+                Route::post('/bulk',                  [TicketController::class, 'bulk']);
+                Route::get('/',                       [TicketController::class, 'index']);
+                Route::get('/{id}',                   [TicketController::class, 'show'])->whereNumber('id');
+                Route::put('/{id}',                   [TicketController::class, 'update'])->whereNumber('id');
+                Route::get('/{id}/sla',               [TicketController::class, 'sla'])->whereNumber('id');
+                Route::post('/{id}/messages',         [TicketController::class, 'addMessage'])->whereNumber('id');
+                Route::post('/{id}/escalate',         [TicketController::class, 'escalate'])->whereNumber('id');
+                Route::post('/{id}/resolve',          [TicketController::class, 'resolve'])->whereNumber('id');
+            });
+
+        }); // end admin middleware group
 });

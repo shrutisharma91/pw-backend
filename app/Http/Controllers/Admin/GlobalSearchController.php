@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Ticket;
 use App\Models\AdminNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -95,11 +96,29 @@ class GlobalSearchController extends Controller
         // TICKETS — when tickets table exists
         // -----------------------------------------------
         if ($categories === 'all' || str_contains($categories, 'tickets')) {
-            $results['tickets'] = [
-                'label' => 'Tickets',
-                'count' => 0,
-                'items' => [],
-            ];
+            $tickets = Ticket::query()
+                ->where(function ($q) use ($query) {
+                    $q->where('ticket_number', 'ILIKE', "%{$query}%")
+                        ->orWhere('subject', 'ILIKE', "%{$query}%")
+                        ->orWhere('reporter_name', 'ILIKE', "%{$query}%");
+                })
+                ->limit(5)
+                ->get(['id', 'ticket_number', 'subject', 'status', 'priority']);
+
+            if ($tickets->isNotEmpty()) {
+                $results['tickets'] = [
+                    'label' => 'Tickets',
+                    'count' => $tickets->count(),
+                    'items' => $tickets->map(fn ($t) => [
+                        'id'       => $t->id,
+                        'label'    => $t->ticket_number,
+                        'sublabel' => $t->subject,
+                        'badge'    => $t->status,
+                        'url'      => "/tickets/{$t->id}",
+                        'type'     => 'ticket',
+                    ]),
+                ];
+            }
         }
 
         // Save this search to recent searches

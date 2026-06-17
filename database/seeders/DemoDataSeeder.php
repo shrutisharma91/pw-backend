@@ -94,5 +94,69 @@ class DemoDataSeeder extends Seeder
                 'response_payload' => json_encode(['error' => 'API timeout'])
             ]
         );
+
+        // Phase 12 — Document Repository demo records
+        $admin = \App\Models\User::where('email', 'finzwork10@gmail.com')->first();
+
+        $documents = [
+            [
+                'storage_path'      => 'documents/demo/merchant-pan.pdf',
+                'document_type'     => 'kyc',
+                'entity_type'       => 'merchant',
+                'entity_id'         => $merchant->id,
+                'original_filename' => 'merchant-pan.pdf',
+                'file_size_bytes'   => 245760,
+                'mime_type'         => 'application/pdf',
+                'status'            => 'virus_clean',
+                'ocr_status'        => 'done',
+                'ocr_text'          => 'PERMANENT ACCOUNT NUMBER AAAAA0000A',
+                'virus_scan_status' => 'clean',
+                'version'           => 1,
+            ],
+            [
+                'storage_path'      => 'documents/demo/merchant-agreement.pdf',
+                'document_type'     => 'agreement',
+                'entity_type'       => 'merchant',
+                'entity_id'         => $merchant->id,
+                'original_filename' => 'merchant-agreement.pdf',
+                'file_size_bytes'   => 512000,
+                'mime_type'         => 'application/pdf',
+                'status'            => 'ocr_done',
+                'ocr_status'        => 'done',
+                'ocr_text'          => 'MERCHANT ONBOARDING AGREEMENT Tech Superstore',
+                'virus_scan_status' => 'clean',
+                'version'           => 2,
+            ],
+            [
+                'storage_path'      => 'documents/demo/store-invoice.pdf',
+                'document_type'     => 'invoice',
+                'entity_type'       => 'store',
+                'entity_id'         => $store->id,
+                'original_filename' => 'store-invoice-june.pdf',
+                'file_size_bytes'   => 128000,
+                'mime_type'         => 'application/pdf',
+                'status'            => 'pending_ocr',
+                'ocr_status'        => 'pending',
+                'ocr_text'          => null,
+                'virus_scan_status' => 'pending',
+                'version'           => 1,
+            ],
+        ];
+
+        foreach ($documents as $data) {
+            $doc = \App\Models\Document::firstOrCreate(
+                ['storage_path' => $data['storage_path']],
+                array_merge($data, ['uploaded_by' => $admin?->id ?? 1])
+            );
+
+            \App\Models\DocumentVersion::firstOrCreate(
+                ['document_id' => $doc->id, 'version' => $doc->version],
+                [
+                    'storage_path'    => $doc->storage_path,
+                    'file_size_bytes' => $doc->file_size_bytes,
+                    'uploaded_by'     => $admin?->id ?? 1,
+                ]
+            );
+        }
     }
 }

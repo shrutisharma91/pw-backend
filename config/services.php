@@ -35,4 +35,19 @@ return [
         ],
     ],
 
+    'msg91' => [
+        'api_key'     => env('MSG91_API_KEY'),
+        'sender_id'   => env('MSG91_SENDER_ID', 'FINZLM'),
+        'template_id' => env('MSG91_TEMPLATE_ID'),
+    ],
+
+    'kaleyra' => [
+        'api_key'  => env('KALEYRA_API_KEY'),
+        'base_url' => env('KALEYRA_BASE_URL', 'https://api.kaleyra.io'),
+    ],
+
+    'firebase' => [
+        'server_key' => env('FCM_SERVER_KEY'),
+    ],
+
 ];

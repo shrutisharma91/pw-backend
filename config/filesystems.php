@@ -60,6 +60,14 @@ return [
             'report' => false,
         ],
 
+        // Local stand-in for Cloudflare R2 during development
+        'r2' => [
+            'driver' => 'local',
+            'root' => storage_path('app/r2'),
+            'throw' => false,
+            'report' => false,
+        ],
+
     ],
 
     /*

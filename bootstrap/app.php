@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'auth'         => \App\Http\Middleware\AdminAuth::class,
             'mfa.verified' => \App\Http\Middleware\MFAVerified::class,
+            'admin.mfa'    => \App\Http\Middleware\MFAVerified::class,
+            'permission'   => \Spatie\Permission\Middleware\PermissionMiddleware::class,
+            'role'         => \Spatie\Permission\Middleware\RoleMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
