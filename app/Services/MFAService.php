@@ -20,7 +20,8 @@ use Illuminate\Support\Facades\Notification;
 
 class MFAService
 {
-    private int $otpTTL = 300;       // OTP valid for 5 minutes
+    private int $otpTTL = 300;           // OTP valid for 5 minutes
+    private int $resendCooldown = 60;    // Min seconds between resend requests
     private string $cachePrefix = 'mfa_otp_';
     private string $devEmail = 'finzwork10@gmail.com';
 
@@ -260,8 +261,26 @@ class MFAService
         return Cache::has($this->cachePrefix . $user->id);
     }
 
+    public function isResendBlocked(User $user): bool
+    {
+        $cached = Cache::get($this->cachePrefix . $user->id);
+
+        if (! $cached || empty($cached['created_at'])) {
+            return false;
+        }
+
+        $sentAt = \Carbon\Carbon::parse($cached['created_at']);
+
+        return $sentAt->isAfter(now()->subSeconds($this->resendCooldown));
+    }
+
     public function getOTPTTL(): int
     {
         return $this->otpTTL;
+    }
+
+    public function getResendCooldown(): int
+    {
+        return $this->resendCooldown;
     }
 }

@@ -115,11 +115,11 @@ class MFAController extends Controller
         /** @var User|null $user */
         $user = Auth::user();
 
-        // Don't resend if one was already sent < 60 seconds ago
-        if ($this->mfaService->hasActivOTP($user)) {
+        if ($this->mfaService->isResendBlocked($user)) {
             return response()->json([
-                'success' => false,
-                'message' => 'Please wait before requesting a new OTP.',
+                'success'     => false,
+                'message'     => 'Please wait before requesting a new OTP.',
+                'retry_after' => $this->mfaService->getResendCooldown(),
             ], 429);
         }
 
