@@ -24,6 +24,10 @@ $targetFiles = [
     'app/Http/Controllers/EmiTypeController.php',
     'app/Http/Controllers/TenureSlabController.php',
     'app/Http/Controllers/OfferController.php',
+    'app/Http/Controllers/Admin/AuditTrailController.php',
+    'app/Http/Controllers/Admin/ConsentLogController.php',
+    'app/Http/Controllers/Admin/ComplianceReportController.php',
+    'app/Http/Controllers/Admin/LoanApplicationController.php',
 ];
 
 // Re-map routes by Controller@action

@@ -41,7 +41,6 @@ class Lender extends Model
     {
         return $this->hasMany(LenderApiLog::class);
     }
-
     public function loans()
     {
         return $this->hasMany(Loan::class);
