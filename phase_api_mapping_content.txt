@@ -1,0 +1,142 @@
+# FinZ LMS - Phase API Mapping
+
+This document maps the implementation phases to their core API endpoints for manual testing purposes.
+
+## Phase01: Auth
+
+| Method | Endpoint | Expected Status (Unauthenticated/Validation) |
+|--------|----------|-----------------|
+| `POST` | `/api/v1/auth/login` | `422` |
+| `POST` | `/api/v1/auth/mfa/verify` | `422` |
+| `POST` | `/api/v1/auth/forgot-password` | `422` |
+| `POST` | `/api/v1/auth/reset-password` | `422` |
+| `GET` | `/api/v1/admin/profile` | `200` |
+| `PUT` | `/api/v1/admin/profile` | `200` |
+
+## Phase03: UserManagement
+
+| Method | Endpoint | Expected Status (Unauthenticated/Validation) |
+|--------|----------|-----------------|
+| `GET` | `/api/v1/admin/users` | `200` |
+| `POST` | `/api/v1/admin/users` | `422` |
+| `GET` | `/api/v1/admin/users/1` | `404` |
+| `PUT` | `/api/v1/admin/users/1` | `404` |
+| `POST` | `/api/v1/admin/users/1/disable` | `404` |
+| `GET` | `/api/v1/admin/roles` | `200` |
+| `POST` | `/api/v1/admin/roles` | `422` |
+| `PUT` | `/api/v1/admin/permissions/roles/1` | `404` |
+| `GET` | `/api/v1/admin/sessions` | `200` |
+| `POST` | `/api/v1/admin/sessions/1/revoke` | `404` |
+
+## Phase04: MerchantLifecycle
+
+| Method | Endpoint | Expected Status (Unauthenticated/Validation) |
+|--------|----------|-----------------|
+| `GET` | `/api/v1/admin/merchants` | `200` |
+| `GET` | `/api/v1/admin/merchants/1` | `404` |
+| `POST` | `/api/v1/admin/merchants/1/approve` | `404` |
+| `POST` | `/api/v1/admin/merchants/1/reject` | `422` |
+| `POST` | `/api/v1/admin/merchants/1/re-kyc` | `404` |
+| `POST` | `/api/v1/admin/merchants/1/suspend` | `404` |
+| `GET` | `/api/v1/admin/merchants/1/verification-logs` | `404` |
+| `GET` | `/api/v1/admin/merchants/1/agreement` | `404` |
+
+## Phase05: StoreAndProduct
+
+| Method | Endpoint | Expected Status (Unauthenticated/Validation) |
+|--------|----------|-----------------|
+| `GET` | `/api/v1/admin/stores` | `200` |
+| `GET` | `/api/v1/admin/stores/1` | `404` |
+| `GET` | `/api/v1/admin/products` | `200` |
+| `GET` | `/api/v1/admin/categories` | `200` |
+| `GET` | `/api/v1/admin/brands` | `200` |
+
+## Phase06: LenderOperations
+
+| Method | Endpoint | Expected Status (Unauthenticated/Validation) |
+|--------|----------|-----------------|
+| `GET` | `/api/v1/admin/lenders` | `200` |
+| `POST` | `/api/v1/admin/lenders` | `422` |
+| `GET` | `/api/v1/admin/lenders/1` | `404` |
+| `GET` | `/api/v1/admin/lender-sla/metrics` | `200` |
+| `GET` | `/api/v1/admin/lender-waterfalls` | `200` |
+| `POST` | `/api/v1/admin/lender-waterfalls/simulate` | `422` |
+| `GET` | `/api/v1/admin/lender-rules` | `200` |
+
+## Phase07: PricingAndOffers
+
+| Method | Endpoint | Expected Status (Unauthenticated/Validation) |
+|--------|----------|-----------------|
+| `GET` | `/api/v1/admin/pricing/emi-types` | `200` |
+| `GET` | `/api/v1/admin/pricing/tenure-slabs` | `200` |
+| `GET` | `/api/v1/admin/offers` | `200` |
+| `POST` | `/api/v1/admin/offers` | `422` |
+| `GET` | `/api/v1/admin/offers/pending` | `200` |
+| `POST` | `/api/v1/admin/offers/1/approve` | `404` |
+
+## Phase08: LoanAndDisbursal
+
+| Method | Endpoint | Expected Status (Unauthenticated/Validation) |
+|--------|----------|-----------------|
+| `GET` | `/api/v1/admin/loans` | `200` |
+| `GET` | `/api/v1/admin/loans/1` | `404` |
+| `POST` | `/api/v1/admin/loans/overrides/1/force-approve` | `422` |
+| `POST` | `/api/v1/admin/loans/overrides/1/trigger-disbursal` | `422` |
+| `GET` | `/api/v1/admin/settlements/batches` | `200` |
+| `GET` | `/api/v1/admin/collections` | `200` |
+
+## Phase09: RiskAndFraud
+
+| Method | Endpoint | Expected Status (Unauthenticated/Validation) |
+|--------|----------|-----------------|
+| `GET` | `/api/v1/admin/fraud-alerts` | `200` |
+| `GET` | `/api/v1/admin/blacklist` | `200` |
+| `POST` | `/api/v1/admin/blacklist` | `422` |
+| `POST` | `/api/v1/admin/blacklist/1/remove` | `422` |
+| `GET` | `/api/v1/admin/risk-rules` | `200` |
+| `GET` | `/api/v1/admin/manual-reviews` | `200` |
+
+## Phase10: ComplianceAndAudit
+
+| Method | Endpoint | Expected Status (Unauthenticated/Validation) |
+|--------|----------|-----------------|
+| `GET` | `/api/v1/admin/audit-trails` | `200` |
+| `GET` | `/api/v1/admin/consents` | `200` |
+| `POST` | `/api/v1/admin/compliance/returns` | `422` |
+| `GET` | `/api/v1/admin/compliance/dpdp-requests` | `200` |
+
+## Phase11: AnalyticsAndBI
+
+| Method | Endpoint | Expected Status (Unauthenticated/Validation) |
+|--------|----------|-----------------|
+| `GET` | `/api/v1/admin/analytics/business` | `200` |
+| `GET` | `/api/v1/admin/analytics/lender` | `200` |
+| `GET` | `/api/v1/admin/analytics/sales` | `200` |
+| `POST` | `/api/v1/admin/reports/custom` | `422` |
+
+## Phase12: NotificationsAndDocs
+
+| Method | Endpoint | Expected Status (Unauthenticated/Validation) |
+|--------|----------|-----------------|
+| `GET` | `/api/v1/admin/templates` | `200` |
+| `GET` | `/api/v1/admin/communication-logs` | `200` |
+| `GET` | `/api/v1/admin/documents` | `200` |
+
+## Phase13: SystemAndIntegrations
+
+| Method | Endpoint | Expected Status (Unauthenticated/Validation) |
+|--------|----------|-----------------|
+| `GET` | `/api/v1/admin/workflows` | `200` |
+| `GET` | `/api/v1/admin/integrations` | `200` |
+| `GET` | `/api/v1/admin/feature-flags` | `200` |
+| `GET` | `/api/v1/admin/system/parameters` | `200` |
+| `PUT` | `/api/v1/admin/system/maintenance` | `200` |
+
+## Phase14: SupportAndHelpdesk
+
+| Method | Endpoint | Expected Status (Unauthenticated/Validation) |
+|--------|----------|-----------------|
+| `GET` | `/api/v1/admin/tickets` | `200` |
+| `GET` | `/api/v1/admin/tickets/1` | `404` |
+| `POST` | `/api/v1/admin/tickets/1/resolve` | `404` |
+

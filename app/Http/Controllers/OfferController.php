@@ -226,4 +226,19 @@ class OfferController extends Controller
 
         return response()->json(['message' => 'Offer rejected', 'offer' => $offer]);
     }
+
+    #[OA\Get(
+        path: "/api/v1/admin/offers/pending",
+        summary: "List Pending Offers",
+        security: [["sanctum" => []]],
+        tags: ["Offer"],
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
+    public function pending()
+    {
+        $offers = Offer::where('status', 'Pending')->get();
+        return response()->json($offers);
+    }
 }

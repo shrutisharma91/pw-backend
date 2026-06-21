@@ -31,7 +31,9 @@ return new class extends Migration
             $table->index(['entity_type', 'entity_id']);
             $table->index(['document_type', 'status']);
             $table->index('deleted_at');
-            $table->fullText('ocr_text');
+            if (config('database.default') !== 'sqlite') {
+                $table->fullText('ocr_text');
+            }
         });
 
         Schema::create('document_versions', function (Blueprint $table) {

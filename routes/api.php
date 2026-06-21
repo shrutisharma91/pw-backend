@@ -300,6 +300,7 @@ Route::prefix('sessions')->group(function () {
             // Screen 31: Offer Engine Builder
             Route::get('/', [OfferController::class, 'index']);
             Route::post('/', [OfferController::class, 'store']);
+            Route::get('/pending', [OfferController::class, 'pending']);
             Route::get('/{id}', [OfferController::class, 'show']);
             Route::put('/{id}', [OfferController::class, 'update']);
             Route::delete('/{id}', [OfferController::class, 'destroy']);
