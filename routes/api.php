@@ -218,7 +218,19 @@ Route::prefix('sessions')->group(function () {
             Route::post('/{id}/escalate', [MerchantController::class, 'escalateToRisk']);
             Route::get('/{id}/verification-logs', [VerificationLogController::class, 'index']); // Screen 18
             Route::post('/{id}/verification-logs/{log_id}/retry', [VerificationLogController::class, 'retry']);
+            Route::get('/{id}/agreements', [MerchantAgreementController::class, 'index']); // Screen 17
             Route::post('/{id}/agreement', [MerchantAgreementController::class, 'generate']); // Screen 17
+            Route::get('/{id}/agreements/{agreement_id}/preview', [MerchantAgreementController::class, 'preview']); // Screen 17
+            Route::get('/{id}/agreements/{agreement_id}/esign-status', [MerchantAgreementController::class, 'esignStatus']); // Screen 17
+            Route::get('/{id}/documents', [MerchantController::class, 'documents']);
+            Route::get('/{id}/notes', [MerchantController::class, 'notes']);
+            Route::post('/{id}/notes', [MerchantController::class, 'addNote']);
+            Route::post('/{id}/approve-changes', [MerchantController::class, 'approveChanges']);
+            Route::post('/{id}/reactivate', [MerchantController::class, 'reactivate']);
+        });
+
+        Route::prefix('verifications')->group(function () {
+            Route::post('/provider-switch', [VerificationLogController::class, 'switchProvider']);
         });
 
         // ----- Phase 5: Store & Product Oversight -----
@@ -231,6 +243,7 @@ Route::prefix('sessions')->group(function () {
 
         Route::prefix('products')->group(function () {
             Route::get('/', [ProductController::class, 'index']);             // Screen 22
+            Route::post('/detect-duplicates', [ProductController::class, 'detectDuplicates']); // Screen 22
             Route::post('/bulk-financing-toggle', [ProductController::class, 'bulkFinancingToggle']); // Screen 22
             Route::post('/{id}/flag', [ProductController::class, 'flag']);    // Screen 22
             Route::post('/{id}/delist', [ProductController::class, 'delist']); // Screen 22
@@ -238,6 +251,8 @@ Route::prefix('sessions')->group(function () {
 
         Route::prefix('categories')->group(function () {
             Route::get('/', [CategoryController::class, 'index']);            // Screen 23
+            Route::get('/export', [CategoryController::class, 'export']);     // Screen 23
+            Route::post('/import', [CategoryController::class, 'import']);    // Screen 23
             Route::post('/', [CategoryController::class, 'store']);           // Screen 23
             Route::put('/{id}', [CategoryController::class, 'update']);       // Screen 23
             Route::post('/{id}/archive', [CategoryController::class, 'archive']); // Screen 23
@@ -246,6 +261,8 @@ Route::prefix('sessions')->group(function () {
 
         Route::prefix('brands')->group(function () {
             Route::get('/', [BrandController::class, 'index']);               // Screen 23
+            Route::get('/export', [BrandController::class, 'export']);        // Screen 23
+            Route::post('/import', [BrandController::class, 'import']);       // Screen 23
             Route::post('/', [BrandController::class, 'store']);              // Screen 23
             Route::put('/{id}', [BrandController::class, 'update']);          // Screen 23
         });
@@ -280,7 +297,10 @@ Route::prefix('sessions')->group(function () {
 
         Route::prefix('lender-sla')->group(function () {
             Route::get('/metrics', [LenderSlaController::class, 'index']);    // Screen 28
+            Route::get('/trends', [LenderSlaController::class, 'trends']);    // Screen 28
             Route::get('/export', [LenderSlaController::class, 'export']);    // Screen 28
+            Route::get('/{id}/history', [LenderSlaController::class, 'history']); // Screen 28
+            Route::get('/{id}/breakdown', [LenderSlaController::class, 'breakdown']); // Screen 28
         });
 
         // ----- Phase 7: Pricing & Offers -----

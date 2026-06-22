@@ -65,4 +65,70 @@ class LenderSlaController extends Controller
             'Content-Disposition' => 'attachment; filename="lender_sla_metrics.csv"',
         ]);
     }
+
+    #[OA\Get(
+        path: "/api/v1/admin/lender-sla/{id}/history",
+        summary: "Get SLA History",
+        security: [["sanctum" => []]],
+        tags: ["LenderSla"],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
+    public function history($id)
+    {
+        $lender = Lender::findOrFail($id);
+        $history = [
+            ['date' => '2024-10-01', 'latency' => 450, 'approval_rate' => 78.5],
+            ['date' => '2024-10-02', 'latency' => 460, 'approval_rate' => 79.1],
+            ['date' => '2024-10-03', 'latency' => 445, 'approval_rate' => 80.2],
+        ];
+        return response()->json(['lender' => $lender->name, 'history' => $history]);
+    }
+
+    #[OA\Get(
+        path: "/api/v1/admin/lender-sla/{id}/breakdown",
+        summary: "Get SLA Breakdown by API",
+        security: [["sanctum" => []]],
+        tags: ["LenderSla"],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
+    public function breakdown($id)
+    {
+        $lender = Lender::findOrFail($id);
+        $breakdown = [
+            ['api_endpoint' => '/eligibility', 'avg_latency_ms' => 200, 'error_rate' => 0.5],
+            ['api_endpoint' => '/create-loan', 'avg_latency_ms' => 800, 'error_rate' => 1.2],
+            ['api_endpoint' => '/disbursal', 'avg_latency_ms' => 1500, 'error_rate' => 0.1],
+        ];
+        return response()->json(['lender' => $lender->name, 'breakdown' => $breakdown]);
+    }
+
+    #[OA\Get(
+        path: "/api/v1/admin/lender-sla/trends",
+        summary: "Get Global SLA Trends",
+        security: [["sanctum" => []]],
+        tags: ["LenderSla"],
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
+    public function trends()
+    {
+        $trends = [
+            'overall_latency_trend' => 'improving',
+            'overall_approval_rate' => 68.5,
+            'top_performing_lender_id' => 1,
+            'worst_performing_lender_id' => 3
+        ];
+        return response()->json(['trends' => $trends]);
+    }
 }

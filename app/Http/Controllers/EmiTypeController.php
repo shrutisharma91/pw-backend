@@ -92,7 +92,10 @@ class EmiTypeController extends Controller
                 properties: [
                     new OA\Property(property: "name", type: "string", example: "Standard No Cost EMI Updated"),
                     new OA\Property(property: "type", type: "string", example: "no-cost"),
-                    new OA\Property(property: "min_loan_amount", type: "number", example: 5000)
+                    new OA\Property(property: "min_loan_amount", type: "number", example: 5000),
+                    new OA\Property(property: "max_loan_amount", type: "number", example: 100000),
+                    new OA\Property(property: "allowed_merchant_tiers", type: "array", items: new OA\Items(type: "string"), example: ["Gold", "Silver"]),
+                    new OA\Property(property: "effective_from", type: "string", format: "date", example: "2024-01-01")
                 ]
             )
         ),

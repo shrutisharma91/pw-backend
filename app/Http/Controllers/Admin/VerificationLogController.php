@@ -58,4 +58,35 @@ class VerificationLogController extends Controller
 
         return response()->json(['message' => 'Verification retried successfully', 'log' => $newLog]);
     }
+
+    #[OA\Post(
+        path: "/api/v1/admin/verifications/provider-switch",
+        summary: "Switch Verification Provider",
+        security: [["sanctum" => []]],
+        tags: ["VerificationLog"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "provider", type: "string", example: "surepass"),
+                    new OA\Property(property: "call_type", type: "string", example: "pan_verification")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
+    public function switchProvider(Request $request)
+    {
+        $request->validate([
+            'provider' => 'required|string|in:karza,surepass',
+            'call_type' => 'required|string'
+        ]);
+
+        // Mock Implementation: update system parameter or config for provider
+        return response()->json([
+            'message' => "Verification provider for {$request->call_type} switched to {$request->provider}"
+        ]);
+    }
 }

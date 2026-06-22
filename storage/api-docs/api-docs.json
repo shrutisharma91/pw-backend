@@ -393,6 +393,61 @@
                 ]
             }
         },
+        "/api/v1/admin/brands/export": {
+            "get": {
+                "tags": [
+                    "Brand"
+                ],
+                "summary": "Export Brands CSV",
+                "operationId": "e560d5fca128e6b8e4038684a7247e68",
+                "responses": {
+                    "200": {
+                        "description": "CSV Data"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/brands/import": {
+            "post": {
+                "tags": [
+                    "Brand"
+                ],
+                "summary": "Import Brands from CSV",
+                "operationId": "32e55e9921acd66b5a07016e0ad15f14",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "properties": {
+                                    "file": {
+                                        "description": "CSV File",
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/api/v1/admin/categories": {
             "get": {
                 "tags": [
@@ -575,6 +630,61 @@
                                     "default_tenure_months": {
                                         "type": "integer",
                                         "example": 6
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/categories/export": {
+            "get": {
+                "tags": [
+                    "Category"
+                ],
+                "summary": "Export Categories CSV",
+                "operationId": "0782d09d12f8d8493155a932540a9d56",
+                "responses": {
+                    "200": {
+                        "description": "CSV Data"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/categories/import": {
+            "post": {
+                "tags": [
+                    "Category"
+                ],
+                "summary": "Import Categories from CSV",
+                "operationId": "d8e306a9c337a9ae5db3026b5fa76cea",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "properties": {
+                                    "file": {
+                                        "description": "CSV File",
+                                        "type": "string",
+                                        "format": "binary"
                                     }
                                 },
                                 "type": "object"
@@ -1428,6 +1538,43 @@
                                     "status": {
                                         "type": "string",
                                         "example": "active"
+                                    },
+                                    "api_key": {
+                                        "type": "string",
+                                        "example": "key_123"
+                                    },
+                                    "api_secret": {
+                                        "type": "string",
+                                        "example": "secret_123"
+                                    },
+                                    "webhook_url": {
+                                        "type": "string",
+                                        "example": "https://webhook.site/123"
+                                    },
+                                    "commission_type": {
+                                        "type": "string",
+                                        "example": "percentage"
+                                    },
+                                    "commission_value": {
+                                        "type": "number",
+                                        "example": 1.5
+                                    },
+                                    "supported_categories": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "electronics"
+                                        ]
+                                    },
+                                    "min_loan_amount": {
+                                        "type": "number",
+                                        "example": 1000
+                                    },
+                                    "max_loan_amount": {
+                                        "type": "number",
+                                        "example": 100000
                                     }
                                 },
                                 "type": "object"
@@ -1508,6 +1655,43 @@
                                     "status": {
                                         "type": "string",
                                         "example": "active"
+                                    },
+                                    "api_key": {
+                                        "type": "string",
+                                        "example": "key_123"
+                                    },
+                                    "api_secret": {
+                                        "type": "string",
+                                        "example": "secret_123"
+                                    },
+                                    "webhook_url": {
+                                        "type": "string",
+                                        "example": "https://webhook.site/123"
+                                    },
+                                    "commission_type": {
+                                        "type": "string",
+                                        "example": "percentage"
+                                    },
+                                    "commission_value": {
+                                        "type": "number",
+                                        "example": 1.5
+                                    },
+                                    "supported_categories": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "electronics"
+                                        ]
+                                    },
+                                    "min_loan_amount": {
+                                        "type": "number",
+                                        "example": 1000
+                                    },
+                                    "max_loan_amount": {
+                                        "type": "number",
+                                        "example": 100000
                                     }
                                 },
                                 "type": "object"
@@ -1772,6 +1956,83 @@
                 "responses": {
                     "200": {
                         "description": "CSV File Download"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/lender-sla/{id}/history": {
+            "get": {
+                "tags": [
+                    "LenderSla"
+                ],
+                "summary": "Get SLA History",
+                "operationId": "0a6075aa54662cc96693f1c52ba06853",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/lender-sla/{id}/breakdown": {
+            "get": {
+                "tags": [
+                    "LenderSla"
+                ],
+                "summary": "Get SLA Breakdown by API",
+                "operationId": "d4654da04c4184d576ee7a56bdbd3ffa",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/lender-sla/trends": {
+            "get": {
+                "tags": [
+                    "LenderSla"
+                ],
+                "summary": "Get Global SLA Trends",
+                "operationId": "2dba0b7932c7267d7aac2ffed7720872",
+                "responses": {
+                    "200": {
+                        "description": "Success"
                     }
                 },
                 "security": [
@@ -2496,6 +2757,109 @@
                 ]
             }
         },
+        "/api/v1/admin/merchants/{id}/agreements": {
+            "get": {
+                "tags": [
+                    "MerchantAgreement"
+                ],
+                "summary": "List Merchant Agreements",
+                "operationId": "d906e44bf5ad5cb4399d333560e46cd2",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/merchants/{id}/agreements/{agreement_id}/preview": {
+            "get": {
+                "tags": [
+                    "MerchantAgreement"
+                ],
+                "summary": "Preview Merchant Agreement",
+                "operationId": "510371a561924b92bf98e8c5c882023f",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "agreement_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/merchants/{id}/agreements/{agreement_id}/esign-status": {
+            "get": {
+                "tags": [
+                    "MerchantAgreement"
+                ],
+                "summary": "Check eSign Status",
+                "operationId": "e0669d628e1cd2461073926fd38a7439",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "agreement_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/api/v1/admin/merchant-categories/{id}/map": {
             "post": {
                 "tags": [
@@ -3044,6 +3408,165 @@
                 ]
             }
         },
+        "/api/v1/admin/merchants/{id}/documents": {
+            "get": {
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "List Merchant Documents",
+                "operationId": "621df06f02e4996666e1355851c73ef6",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/merchants/{id}/notes": {
+            "get": {
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "List Merchant Notes",
+                "operationId": "cdd486cce495ea3ad0a4b2761666f479",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "Add Merchant Note",
+                "operationId": "a0c0448d28705e3ef793c8163ca8a657",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "note": {
+                                        "type": "string",
+                                        "example": "Called merchant regarding KYC."
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/merchants/{id}/approve-changes": {
+            "post": {
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "Approve Profile Changes",
+                "operationId": "e03d6f532ceea10ca248e8039256d2fe",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/merchants/{id}/reactivate": {
+            "post": {
+                "tags": [
+                    "Merchant"
+                ],
+                "summary": "Reactivate Merchant",
+                "operationId": "9dd55d37b83746fbee1c7e0e7922f988",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/api/v1/admin/products": {
             "get": {
                 "tags": [
@@ -3182,6 +3705,25 @@
                         }
                     }
                 },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/products/detect-duplicates": {
+            "post": {
+                "tags": [
+                    "Product"
+                ],
+                "summary": "Detect Duplicate SKUs",
+                "operationId": "5d0aa2a50eac17f37fca3456e099df8d",
                 "responses": {
                     "200": {
                         "description": "Success"
@@ -3565,6 +4107,45 @@
                 ]
             }
         },
+        "/api/v1/admin/verifications/provider-switch": {
+            "post": {
+                "tags": [
+                    "VerificationLog"
+                ],
+                "summary": "Switch Verification Provider",
+                "operationId": "f3814ee1db938aa2c34c52841240c736",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "provider": {
+                                        "type": "string",
+                                        "example": "surepass"
+                                    },
+                                    "call_type": {
+                                        "type": "string",
+                                        "example": "pan_verification"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/api/v1/auth/login": {
             "post": {
                 "tags": [
@@ -3928,6 +4509,25 @@
                                     "min_loan_amount": {
                                         "type": "number",
                                         "example": 5000
+                                    },
+                                    "max_loan_amount": {
+                                        "type": "number",
+                                        "example": 100000
+                                    },
+                                    "allowed_merchant_tiers": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        },
+                                        "example": [
+                                            "Gold",
+                                            "Silver"
+                                        ]
+                                    },
+                                    "effective_from": {
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2024-01-01"
                                     }
                                 },
                                 "type": "object"
@@ -4063,6 +4663,14 @@
                                     "is_platform_offer": {
                                         "type": "boolean",
                                         "example": true
+                                    },
+                                    "coupon_code": {
+                                        "type": "string",
+                                        "example": "DIWALI24"
+                                    },
+                                    "festival_template": {
+                                        "type": "string",
+                                        "example": "diwali_theme_1"
                                     }
                                 },
                                 "type": "object"
@@ -4135,6 +4743,48 @@
                                     "title": {
                                         "type": "string",
                                         "example": "Diwali Special Cashback (Extended)"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "example": "Updated description"
+                                    },
+                                    "offer_type": {
+                                        "type": "string",
+                                        "example": "cashback"
+                                    },
+                                    "discount_value": {
+                                        "type": "number",
+                                        "example": 6
+                                    },
+                                    "scope_type": {
+                                        "type": "string",
+                                        "example": "platform"
+                                    },
+                                    "start_date": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "example": "2024-10-01 00:00:00"
+                                    },
+                                    "end_date": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "example": "2024-11-05 23:59:59"
+                                    },
+                                    "budget_cap": {
+                                        "type": "number",
+                                        "example": 600000
+                                    },
+                                    "auto_pause": {
+                                        "type": "boolean",
+                                        "example": false
+                                    },
+                                    "coupon_code": {
+                                        "type": "string",
+                                        "example": "DIWALI24EXT"
+                                    },
+                                    "festival_template": {
+                                        "type": "string",
+                                        "example": "diwali_theme_2"
                                     }
                                 },
                                 "type": "object"
@@ -4243,6 +4893,25 @@
                         }
                     }
                 },
+                "responses": {
+                    "200": {
+                        "description": "Success"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/offers/pending": {
+            "get": {
+                "tags": [
+                    "Offer"
+                ],
+                "summary": "List Pending Offers",
+                "operationId": "9424050ba0719da8cb5c529c26fb3ff2",
                 "responses": {
                     "200": {
                         "description": "Success"

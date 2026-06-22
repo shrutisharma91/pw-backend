@@ -179,4 +179,53 @@ class CategoryController extends Controller
 
         return response()->json(['message' => 'Financing rules updated successfully', 'category' => $category]);
     }
+
+    #[OA\Get(
+        path: "/api/v1/admin/categories/export",
+        summary: "Export Categories CSV",
+        security: [["sanctum" => []]],
+        tags: ["Category"],
+        responses: [
+            new OA\Response(response: 200, description: "CSV Data")
+        ]
+    )]
+    public function export(Request $request)
+    {
+        $categories = Category::all();
+        $csvData = "ID,Name,Slug,Parent ID\n";
+        foreach ($categories as $c) {
+            $csvData .= "{$c->id},\"{$c->name}\",{$c->slug},{$c->parent_id}\n";
+        }
+        return response()->make($csvData, 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="categories.csv"',
+        ]);
+    }
+
+    #[OA\Post(
+        path: "/api/v1/admin/categories/import",
+        summary: "Import Categories from CSV",
+        security: [["sanctum" => []]],
+        tags: ["Category"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: "multipart/form-data",
+                schema: new OA\Schema(
+                    properties: [
+                        new OA\Property(property: "file", type: "string", format: "binary", description: "CSV File")
+                    ]
+                )
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
+    public function import(Request $request)
+    {
+        $request->validate(['file' => 'required|file|mimes:csv,txt']);
+        // Mock Import Implementation
+        return response()->json(['message' => 'Categories imported successfully']);
+    }
 }

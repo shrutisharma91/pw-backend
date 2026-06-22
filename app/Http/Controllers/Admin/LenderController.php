@@ -54,7 +54,15 @@ class LenderController extends Controller
                 properties: [
                     new OA\Property(property: "name", type: "string", example: "HDFC Bank"),
                     new OA\Property(property: "api_base_url", type: "string", example: "https://api.hdfc.com/v1"),
-                    new OA\Property(property: "status", type: "string", example: "active")
+                    new OA\Property(property: "status", type: "string", example: "active"),
+                    new OA\Property(property: "api_key", type: "string", example: "key_123"),
+                    new OA\Property(property: "api_secret", type: "string", example: "secret_123"),
+                    new OA\Property(property: "webhook_url", type: "string", example: "https://webhook.site/123"),
+                    new OA\Property(property: "commission_type", type: "string", example: "percentage"),
+                    new OA\Property(property: "commission_value", type: "number", example: 1.5),
+                    new OA\Property(property: "supported_categories", type: "array", items: new OA\Items(type: "string"), example: ["electronics"]),
+                    new OA\Property(property: "min_loan_amount", type: "number", example: 1000),
+                    new OA\Property(property: "max_loan_amount", type: "number", example: 100000)
                 ]
             )
         ),
@@ -69,7 +77,35 @@ class LenderController extends Controller
             'api_base_url' => 'required|url',
         ]);
 
-        $lender = Lender::create($request->all());
+        $data = $request->all();
+
+        // Map frontend fields to DB JSON columns
+        if ($request->has('api_key') || $request->has('api_secret')) {
+            $data['api_credentials'] = [
+                'key' => $request->api_key,
+                'secret' => $request->api_secret
+            ];
+        }
+
+        if ($request->has('webhook_url')) {
+            $data['webhook_endpoints'] = ['default' => $request->webhook_url];
+        }
+
+        if ($request->has('commission_type') || $request->has('commission_value')) {
+            $data['commission_structure'] = [
+                'type' => $request->commission_type,
+                'value' => $request->commission_value
+            ];
+        }
+        
+        if ($request->has('supported_categories')) {
+            // we will store this in supported_tenures for now as per DB or a new column if needed
+            // Wait, the DB does not have supported_categories. I will just merge it into a generic config or store it if possible.
+            // Let's reuse 'supported_tenures' or keep it as is, or we can use the 'commission_structure' config
+            $data['supported_tenures'] = $request->supported_categories; 
+        }
+
+        $lender = Lender::create($data);
         return response()->json($lender, 201);
     }
 
@@ -87,7 +123,15 @@ class LenderController extends Controller
                 properties: [
                     new OA\Property(property: "name", type: "string", example: "HDFC Bank"),
                     new OA\Property(property: "api_base_url", type: "string", example: "https://api.hdfc.com/v1"),
-                    new OA\Property(property: "status", type: "string", example: "active")
+                    new OA\Property(property: "status", type: "string", example: "active"),
+                    new OA\Property(property: "api_key", type: "string", example: "key_123"),
+                    new OA\Property(property: "api_secret", type: "string", example: "secret_123"),
+                    new OA\Property(property: "webhook_url", type: "string", example: "https://webhook.site/123"),
+                    new OA\Property(property: "commission_type", type: "string", example: "percentage"),
+                    new OA\Property(property: "commission_value", type: "number", example: 1.5),
+                    new OA\Property(property: "supported_categories", type: "array", items: new OA\Items(type: "string"), example: ["electronics"]),
+                    new OA\Property(property: "min_loan_amount", type: "number", example: 1000),
+                    new OA\Property(property: "max_loan_amount", type: "number", example: 100000)
                 ]
             )
         ),
@@ -98,7 +142,32 @@ class LenderController extends Controller
     public function update(Request $request, $id)
     {
         $lender = Lender::findOrFail($id);
-        $lender->update($request->all());
+        $data = $request->all();
+
+        // Map frontend fields to DB JSON columns
+        if ($request->has('api_key') || $request->has('api_secret')) {
+            $creds = $lender->api_credentials ?? [];
+            if ($request->has('api_key')) $creds['key'] = $request->api_key;
+            if ($request->has('api_secret')) $creds['secret'] = $request->api_secret;
+            $data['api_credentials'] = $creds;
+        }
+
+        if ($request->has('webhook_url')) {
+            $data['webhook_endpoints'] = ['default' => $request->webhook_url];
+        }
+
+        if ($request->has('commission_type') || $request->has('commission_value')) {
+            $comm = $lender->commission_structure ?? [];
+            if ($request->has('commission_type')) $comm['type'] = $request->commission_type;
+            if ($request->has('commission_value')) $comm['value'] = $request->commission_value;
+            $data['commission_structure'] = $comm;
+        }
+        
+        if ($request->has('supported_categories')) {
+            $data['supported_tenures'] = $request->supported_categories; 
+        }
+
+        $lender->update($data);
         return response()->json($lender);
     }
 

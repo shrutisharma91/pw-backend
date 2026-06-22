@@ -117,4 +117,23 @@ class ProductController extends Controller
 
         return response()->json(['message' => 'Bulk financing eligibility toggled successfully']);
     }
+
+    #[OA\Post(
+        path: "/api/v1/admin/products/detect-duplicates",
+        summary: "Detect Duplicate SKUs",
+        security: [["sanctum" => []]],
+        tags: ["Product"],
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
+    public function detectDuplicates(Request $request)
+    {
+        // Mock implementation for duplicate detection
+        $duplicates = [
+            ['sku' => 'SKU-1001', 'merchant_ids' => [1, 5], 'product_name' => 'iPhone 15 Pro'],
+            ['sku' => 'SKU-2005', 'merchant_ids' => [2, 8, 12], 'product_name' => 'Samsung S24 Ultra']
+        ];
+        return response()->json(['duplicates' => $duplicates]);
+    }
 }

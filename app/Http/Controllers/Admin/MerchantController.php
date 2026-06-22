@@ -337,4 +337,119 @@ class MerchantController extends Controller
         // Mock Implementation
         return response()->json(['message' => 'Escalated to Risk team']);
     }
+
+    #[OA\Get(
+        path: "/api/v1/admin/merchants/{id}/documents",
+        summary: "List Merchant Documents",
+        security: [["sanctum" => []]],
+        tags: ["Merchant"],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
+    public function documents($id)
+    {
+        $documents = \Illuminate\Support\Facades\DB::table('documents')
+            ->where('entity_type', 'merchant')
+            ->where('entity_id', $id)
+            ->get();
+        return response()->json($documents);
+    }
+
+    #[OA\Get(
+        path: "/api/v1/admin/merchants/{id}/notes",
+        summary: "List Merchant Notes",
+        security: [["sanctum" => []]],
+        tags: ["Merchant"],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
+    public function notes($id)
+    {
+        $notes = \Illuminate\Support\Facades\DB::table('merchant_notes')
+            ->where('merchant_id', $id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+        return response()->json($notes);
+    }
+
+    #[OA\Post(
+        path: "/api/v1/admin/merchants/{id}/notes",
+        summary: "Add Merchant Note",
+        security: [["sanctum" => []]],
+        tags: ["Merchant"],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "note", type: "string", example: "Called merchant regarding KYC.")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 201, description: "Success")
+        ]
+    )]
+    public function addNote(Request $request, $id)
+    {
+        $request->validate(['note' => 'required|string']);
+        \Illuminate\Support\Facades\DB::table('merchant_notes')->insert([
+            'merchant_id' => $id,
+            'user_id' => \Illuminate\Support\Facades\Auth::id() ?? 1,
+            'note' => $request->note,
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+        return response()->json(['message' => 'Note added successfully'], 201);
+    }
+
+    #[OA\Post(
+        path: "/api/v1/admin/merchants/{id}/approve-changes",
+        summary: "Approve Profile Changes",
+        security: [["sanctum" => []]],
+        tags: ["Merchant"],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
+    public function approveChanges(Request $request, $id)
+    {
+        // Mock implementation for approving profile modifications
+        return response()->json(['message' => 'Profile changes approved for merchant ' . $id]);
+    }
+
+    #[OA\Post(
+        path: "/api/v1/admin/merchants/{id}/reactivate",
+        summary: "Reactivate Merchant",
+        security: [["sanctum" => []]],
+        tags: ["Merchant"],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
+    public function reactivate(Request $request, $id)
+    {
+        $merchant = Merchant::findOrFail($id);
+        $merchant->status = 'Active';
+        $merchant->suspension_reason = null;
+        $merchant->save();
+        
+        return response()->json(['message' => 'Merchant reactivated successfully', 'merchant' => $merchant]);
+    }
 }
