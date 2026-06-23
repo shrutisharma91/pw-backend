@@ -326,13 +326,14 @@ class Phase13Seeder extends Seeder
     private function seedSystemParameters(int $adminId): void
     {
         $parameters = [
-            'otp_expiry_minutes'    => '10',
-            'max_loan_amount'       => '500000',
-            'min_loan_amount'       => '5000',
-            'default_interest_rate' => '14.5',
-            'maintenance_mode'      => '0',
-            'platform_name'         => 'FinZ LMS',
-            'support_email'         => 'support@finz.com',
+            'otp_expiry_minutes'      => '10',
+            'max_loan_amount'         => '500000',
+            'min_loan_amount'         => '5000',
+            'default_interest_rate'   => '14.5',
+            'maintenance_mode'        => '0',
+            'platform_name'           => 'FinZ LMS',
+            'support_email'           => 'support@finz.com',
+            'debug_logging_enabled'   => '0',
         ];
 
         foreach ($parameters as $key => $value) {

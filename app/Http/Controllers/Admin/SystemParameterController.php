@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\System\ToggleDebugLoggingRequest;
+use App\Http\Requests\System\UpdateSystemParametersRequest;
+use App\Http\Resources\DebugLoggingStatusResource;
+use App\Http\Resources\SystemParametersResource;
+use App\Services\SystemParameterService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Validation\Rule;
 
 /**
  * Phase 13 — Screen 55: System Parameters & Settings
@@ -14,55 +17,13 @@ use Illuminate\Validation\Rule;
  */
 class SystemParameterController extends Controller
 {
-    // All allowed parameter keys with types and allowed updaters
-    private const PARAMETER_SCHEMA = [
-        // Rates & Fees
-        'default_interest_rate'        => ['type' => 'float',   'label' => 'Default Interest Rate (%)',       'group' => 'rates'],
-        'default_processing_fee'       => ['type' => 'float',   'label' => 'Default Processing Fee (%)',      'group' => 'rates'],
-        'default_late_payment_fee'     => ['type' => 'float',   'label' => 'Default Late Payment Fee (₹)',    'group' => 'rates'],
-        'default_bounce_charge'        => ['type' => 'float',   'label' => 'Bounce Charge (₹)',               'group' => 'rates'],
-        'max_merchant_discount'        => ['type' => 'float',   'label' => 'Max Merchant Discount (%)',       'group' => 'rates'],
-
-        // Auth & Security
-        'otp_expiry_minutes'           => ['type' => 'int',     'label' => 'OTP Expiry (minutes)',            'group' => 'security'],
-        'otp_max_retries'              => ['type' => 'int',     'label' => 'OTP Max Retries',                 'group' => 'security'],
-        'login_lockout_attempts'       => ['type' => 'int',     'label' => 'Login Lockout Attempts',          'group' => 'security'],
-        'login_lockout_minutes'        => ['type' => 'int',     'label' => 'Login Lockout Duration (min)',    'group' => 'security'],
-        'session_timeout_minutes'      => ['type' => 'int',     'label' => 'Session Timeout (minutes)',       'group' => 'security'],
-        'password_expiry_days'         => ['type' => 'int',     'label' => 'Password Expiry (days)',          'group' => 'security'],
-        'mfa_trusted_device_days'      => ['type' => 'int',     'label' => 'MFA Trusted Device (days)',       'group' => 'security'],
-        'reset_link_expiry_minutes'    => ['type' => 'int',     'label' => 'Password Reset Link Expiry (min)','group' => 'security'],
-
-        // SLAs
-        'kyc_review_sla_hours'         => ['type' => 'int',     'label' => 'KYC Review SLA (hours)',          'group' => 'sla'],
-        'loan_approval_sla_minutes'    => ['type' => 'int',     'label' => 'Loan Approval SLA (minutes)',     'group' => 'sla'],
-        'disbursal_sla_hours'          => ['type' => 'int',     'label' => 'Disbursal SLA (hours)',           'group' => 'sla'],
-        'ticket_first_response_sla_hours' => ['type' => 'int', 'label' => 'Ticket First Response SLA (hrs)', 'group' => 'sla'],
-        'offer_approval_sla_hours'     => ['type' => 'int',     'label' => 'Offer Approval SLA (hours)',      'group' => 'sla'],
-
-        // Platform Limits
-        'max_loan_amount'              => ['type' => 'int',     'label' => 'Max Loan Amount (₹)',             'group' => 'limits'],
-        'min_loan_amount'              => ['type' => 'int',     'label' => 'Min Loan Amount (₹)',             'group' => 'limits'],
-        'max_emi_tenure_months'        => ['type' => 'int',     'label' => 'Max EMI Tenure (months)',         'group' => 'limits'],
-        'manual_override_threshold'    => ['type' => 'int',     'label' => 'Manual Override Dual-Auth Threshold (₹)', 'group' => 'limits'],
-        'auto_approval_offer_threshold'=> ['type' => 'int',     'label' => 'Auto-Approve Offer Threshold (₹)','group' => 'limits'],
-
-        // Maintenance
-        'maintenance_mode'             => ['type' => 'bool',    'label' => 'Maintenance Mode',                'group' => 'platform'],
-        'maintenance_banner'           => ['type' => 'string',  'label' => 'Maintenance Banner Message',      'group' => 'platform'],
-        'maintenance_ends_at'          => ['type' => 'datetime','label' => 'Maintenance Ends At',             'group' => 'platform'],
-        'platform_name'                => ['type' => 'string',  'label' => 'Platform Name',                   'group' => 'platform'],
-        'support_email'                => ['type' => 'string',  'label' => 'Support Email',                   'group' => 'platform'],
-        'support_phone'                => ['type' => 'string',  'label' => 'Support Phone',                   'group' => 'platform'],
-    ];
-
-    public function __construct()
+    public function __construct(private SystemParameterService $systemParameterService)
     {
         $this->middleware('permission:system.parameters.view')
-            ->only(['index', 'show', 'audit']);
+            ->only(['index', 'show', 'audit', 'debugLoggingStatus']);
 
         $this->middleware('permission:system.parameters.edit')
-            ->only(['update']);
+            ->only(['update', 'toggleDebugLogging', 'resetToDefaults']);
 
         $this->middleware('permission:system.maintenance.toggle')
             ->only(['toggleMaintenance']);
@@ -74,28 +35,10 @@ class SystemParameterController extends Controller
      */
     public function index()
     {
-        $stored = DB::table('system_parameters')
-            ->orderBy('key')
-            ->get()
-            ->keyBy('key');
-
-        $grouped = collect(self::PARAMETER_SCHEMA)
-            ->groupBy(fn($schema) => $schema['group'])
-            ->map(function ($params, $group) use ($stored) {
-                return collect($params)->map(function ($schema, $key) use ($stored) {
-                    $row = $stored->get($key);
-                    return [
-                        'key'         => $key,
-                        'label'       => $schema['label'],
-                        'type'        => $schema['type'],
-                        'value'       => $row ? $this->castValue($row->value, $schema['type']) : null,
-                        'updated_at'  => $row?->updated_at,
-                        'updated_by'  => $row?->updated_by,
-                    ];
-                })->values();
-            });
-
-        return response()->json(['success' => true, 'data' => $grouped]);
+        return response()->json([
+            'success' => true,
+            'data'    => new SystemParametersResource($this->systemParameterService->groupedParameters()),
+        ]);
     }
 
     /**
@@ -104,18 +47,15 @@ class SystemParameterController extends Controller
      */
     public function show(string $key)
     {
-        if (!array_key_exists($key, self::PARAMETER_SCHEMA)) {
+        $detail = $this->systemParameterService->parameterDetail($key);
+
+        if ($detail === null) {
             return response()->json(['success' => false, 'message' => 'Unknown parameter key.'], 404);
         }
 
-        $row = DB::table('system_parameters')->where('key', $key)->first();
-
         return response()->json([
             'success' => true,
-            'data'    => array_merge(self::PARAMETER_SCHEMA[$key], [
-                'key'   => $key,
-                'value' => $row ? $this->castValue($row->value, self::PARAMETER_SCHEMA[$key]['type']) : null,
-            ]),
+            'data'    => $detail,
         ]);
     }
 
@@ -123,49 +63,64 @@ class SystemParameterController extends Controller
      * PUT /api/admin/system/parameters
      * Batch update multiple parameters in one atomic transaction
      */
-    public function update(Request $request)
+    public function update(UpdateSystemParametersRequest $request)
     {
-        $request->validate([
-            'parameters'        => 'required|array|min:1',
-            'parameters.*.key'  => 'required|string',
-            'parameters.*.value'=> 'required',
+        $count = $this->systemParameterService->updateParameters(
+            $request->validated('parameters'),
+            (int) auth()->id()
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => "{$count} parameter(s) updated.",
         ]);
+    }
 
-        $unknownKeys = collect($request->parameters)
-            ->pluck('key')
-            ->filter(fn($k) => !array_key_exists($k, self::PARAMETER_SCHEMA));
+    /**
+     * GET /api/admin/system/parameters/debug-logging
+     * Current debug logging status
+     */
+    public function debugLoggingStatus()
+    {
+        return response()->json([
+            'success' => true,
+            'data'    => new DebugLoggingStatusResource($this->systemParameterService->debugLoggingStatus()),
+        ]);
+    }
 
-        if ($unknownKeys->isNotEmpty()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unknown parameter keys: ' . $unknownKeys->implode(', '),
-            ], 422);
-        }
+    /**
+     * PUT /api/admin/system/parameters/debug-logging
+     * Enable or disable debug logging
+     */
+    public function toggleDebugLogging(ToggleDebugLoggingRequest $request)
+    {
+        $status = $this->systemParameterService->setDebugLogging(
+            $request->boolean('enabled'),
+            (int) auth()->id()
+        );
 
-        DB::transaction(function () use ($request) {
-            foreach ($request->parameters as $param) {
-                $key    = $param['key'];
-                $schema = self::PARAMETER_SCHEMA[$key];
-                $value  = $this->sanitizeValue($param['value'], $schema['type']);
+        return response()->json([
+            'success' => true,
+            'message' => $request->boolean('enabled')
+                ? 'Debug logging enabled.'
+                : 'Debug logging disabled.',
+            'data'    => new DebugLoggingStatusResource($status),
+        ]);
+    }
 
-                // Capture old value for audit
-                $oldValue = DB::table('system_parameters')->where('key', $key)->value('value');
+    /**
+     * POST /api/admin/system/parameters/reset
+     * Restore all configurable parameters to default values
+     */
+    public function resetToDefaults()
+    {
+        $grouped = $this->systemParameterService->resetToDefaults((int) auth()->id());
 
-                DB::table('system_parameters')->updateOrInsert(
-                    ['key' => $key],
-                    ['value' => $value, 'updated_by' => auth()->id(), 'updated_at' => now()]
-                );
-
-                // Write to audit trail
-                activity()->withProperties(['key' => $key, 'old_value' => $oldValue, 'new_value' => $value])
-                    ->log("System parameter updated: {$key}");
-            }
-        });
-
-        // Invalidate all cached parameter values
-        flush_cache_tags(['system_parameters']);
-
-        return response()->json(['success' => true, 'message' => count($request->parameters) . ' parameter(s) updated.']);
+        return response()->json([
+            'success' => true,
+            'message' => 'System parameters reset to default values.',
+            'data'    => new SystemParametersResource($grouped),
+        ]);
     }
 
     /**
@@ -175,16 +130,18 @@ class SystemParameterController extends Controller
     public function toggleMaintenance(Request $request)
     {
         $request->validate([
-            'enabled'    => 'required|boolean',
-            'banner'     => 'nullable|string|max:500',
-            'ends_at'    => 'nullable|date|after:now',
+            'enabled' => 'required|boolean',
+            'banner'  => 'nullable|string|max:500',
+            'ends_at' => 'nullable|date|after:now',
         ]);
 
         DB::transaction(function () use ($request) {
-            $this->upsertParam('maintenance_mode', (int) $request->enabled);
-            $this->upsertParam('maintenance_banner', $request->banner ?? '');
+            $userId = (int) auth()->id();
+            $this->systemParameterService->upsert('maintenance_mode', (int) $request->enabled, $userId);
+            $this->systemParameterService->upsert('maintenance_banner', $request->banner ?? '', $userId);
+
             if ($request->ends_at) {
-                $this->upsertParam('maintenance_ends_at', $request->ends_at);
+                $this->systemParameterService->upsert('maintenance_ends_at', $request->ends_at, $userId);
             }
         });
 
@@ -194,8 +151,8 @@ class SystemParameterController extends Controller
         activity()->log("Maintenance mode {$status}" . ($request->banner ? ": {$request->banner}" : ''));
 
         return response()->json([
-            'success'  => true,
-            'message'  => $request->enabled
+            'success' => true,
+            'message' => $request->enabled
                 ? 'Maintenance mode is ON. The platform banner is live.'
                 : 'Maintenance mode is OFF. Platform is accessible.',
         ]);
@@ -215,7 +172,10 @@ class SystemParameterController extends Controller
 
         $logs = DB::table('audit_logs')
             ->where('action', 'activity_log')
-            ->where('payload->message', 'like', 'System parameter updated%')
+            ->where(function ($query) {
+                $query->where('payload->message', 'like', 'System parameter updated%')
+                    ->orWhere('payload->message', 'System parameters reset to defaults');
+            })
             ->when($request->key, fn ($q) => $q->where('payload->key', $request->key))
             ->when($request->start_date, fn ($q) => $q->whereDate('created_at', '>=', $request->start_date))
             ->when($request->end_date, fn ($q) => $q->whereDate('created_at', '<=', $request->end_date))
@@ -223,36 +183,5 @@ class SystemParameterController extends Controller
             ->paginate(50);
 
         return response()->json(['success' => true, 'data' => $logs]);
-    }
-
-    // ─── Helpers ──────────────────────────────────────────────────────────────
-
-    private function castValue(string $raw, string $type): mixed
-    {
-        return match ($type) {
-            'int'      => (int) $raw,
-            'float'    => (float) $raw,
-            'bool'     => (bool) (int) $raw,
-            'datetime' => $raw,
-            default    => $raw,
-        };
-    }
-
-    private function sanitizeValue(mixed $value, string $type): string
-    {
-        return match ($type) {
-            'int'   => (string) (int) $value,
-            'float' => (string) (float) $value,
-            'bool'  => $value ? '1' : '0',
-            default => (string) $value,
-        };
-    }
-
-    private function upsertParam(string $key, mixed $value): void
-    {
-        DB::table('system_parameters')->updateOrInsert(
-            ['key' => $key],
-            ['value' => (string) $value, 'updated_by' => auth()->id(), 'updated_at' => now()]
-        );
     }
 }

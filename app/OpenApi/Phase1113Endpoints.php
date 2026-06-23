@@ -444,6 +444,37 @@ class Phase1113Endpoints
 
     // ─── Phase 12 — Documents ────────────────────────────────────────────────
 
+    #[OA\Post(
+        path: '/api/v1/admin/documents',
+        tags: ['Phase12-Documents'],
+        summary: 'Upload document',
+        description: 'Upload a file with metadata to the document repository. Triggers virus scan and OCR jobs.',
+        security: [['sanctum' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: 'multipart/form-data',
+                schema: new OA\Schema(
+                    required: ['file', 'title', 'entity_type', 'entity_id'],
+                    properties: [
+                        new OA\Property(property: 'file', type: 'string', format: 'binary'),
+                        new OA\Property(property: 'title', type: 'string', example: 'Merchant PAN Card'),
+                        new OA\Property(property: 'description', type: 'string', example: 'PAN submitted during onboarding'),
+                        new OA\Property(property: 'category', type: 'string', enum: ['kyc', 'agreement', 'invoice', 'statement', 'enach', 'esign', 'other'], example: 'kyc'),
+                        new OA\Property(property: 'tags', type: 'array', items: new OA\Items(type: 'string'), example: ['pan', 'kyc']),
+                        new OA\Property(property: 'entity_type', type: 'string', enum: ['merchant', 'customer', 'store'], example: 'merchant'),
+                        new OA\Property(property: 'entity_id', type: 'integer', example: 1),
+                    ]
+                )
+            )
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'Document uploaded'),
+            new OA\Response(response: 422, description: 'Validation error'),
+        ]
+    )]
+    public function documentsStore(): void {}
+
     #[OA\Get(path: '/api/v1/admin/documents/stats', tags: ['Phase12-Documents'], summary: 'Document stats', security: [['sanctum' => []]], responses: [new OA\Response(response: 200, description: 'OK')])]
     public function documentsStats(): void {}
 
@@ -797,7 +828,43 @@ class Phase1113Endpoints
 
     // ─── Phase 13 — System Parameters ────────────────────────────────────────
 
-    #[OA\Get(path: '/api/v1/admin/system/parameters', tags: ['Phase13-System'], summary: 'List system parameters', security: [['sanctum' => []]], responses: [new OA\Response(response: 200, description: 'OK')])]
+    #[OA\Get(
+        path: '/api/v1/admin/system/parameters',
+        tags: ['Phase13-System'],
+        summary: 'List system parameters',
+        description: 'Returns all configurable parameters grouped by category: rates, security (includes otp_expiry_minutes), sla, limits, platform (includes platform_name, debug_logging_enabled).',
+        security: [['sanctum' => []]],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Grouped parameters',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'success', type: 'boolean', example: true),
+                        new OA\Property(
+                            property: 'data',
+                            properties: [
+                                new OA\Property(
+                                    property: 'security',
+                                    type: 'array',
+                                    items: new OA\Items(
+                                        properties: [
+                                            new OA\Property(property: 'key', type: 'string', example: 'otp_expiry_minutes'),
+                                            new OA\Property(property: 'label', type: 'string', example: 'OTP Expiry (minutes)'),
+                                            new OA\Property(property: 'type', type: 'string', example: 'int'),
+                                            new OA\Property(property: 'value', example: 10),
+                                        ],
+                                        type: 'object'
+                                    )
+                                ),
+                            ],
+                            type: 'object'
+                        ),
+                    ]
+                )
+            ),
+        ]
+    )]
     public function systemParametersIndex(): void {}
 
     #[OA\Get(
@@ -814,13 +881,23 @@ class Phase1113Endpoints
     )]
     public function systemParametersAudit(): void {}
 
-    #[OA\Get(path: '/api/v1/admin/system/parameters/{key}', tags: ['Phase13-System'], summary: 'System parameter detail', security: [['sanctum' => []]], parameters: [new OA\Parameter(name: 'key', in: 'path', required: true, schema: new OA\Schema(type: 'string'))], responses: [new OA\Response(response: 200, description: 'OK')])]
+    #[OA\Get(
+        path: '/api/v1/admin/system/parameters/{key}',
+        tags: ['Phase13-System'],
+        summary: 'System parameter detail',
+        security: [['sanctum' => []]],
+        parameters: [
+            new OA\Parameter(name: 'key', in: 'path', required: true, schema: new OA\Schema(type: 'string', example: 'otp_expiry_minutes')),
+        ],
+        responses: [new OA\Response(response: 200, description: 'OK'), new OA\Response(response: 404, description: 'Unknown parameter key')]
+    )]
     public function systemParametersShow(): void {}
 
     #[OA\Put(
         path: '/api/v1/admin/system/parameters',
         tags: ['Phase13-System'],
         summary: 'Update system parameters',
+        description: 'Batch-update one or more parameters. Use keys from GET /system/parameters (e.g. otp_expiry_minutes, platform_name, max_loan_amount).',
         security: [['sanctum' => []]],
         requestBody: new OA\RequestBody(
             required: true,
@@ -833,19 +910,110 @@ class Phase1113Endpoints
                         items: new OA\Items(
                             required: ['key', 'value'],
                             properties: [
-                                new OA\Property(property: 'key', type: 'string', example: 'max_loan_amount'),
-                                new OA\Property(property: 'value', example: 500000),
+                                new OA\Property(property: 'key', type: 'string', example: 'otp_expiry_minutes'),
+                                new OA\Property(property: 'value', example: 15),
                             ],
                             type: 'object'
                         ),
-                        example: [['key' => 'max_loan_amount', 'value' => 500000]]
+                        example: [
+                            ['key' => 'otp_expiry_minutes', 'value' => 15],
+                            ['key' => 'platform_name', 'value' => 'FinZ LMS Test'],
+                        ]
                     ),
+                ],
+                example: [
+                    'parameters' => [
+                        ['key' => 'otp_expiry_minutes', 'value' => 15],
+                        ['key' => 'platform_name', 'value' => 'FinZ LMS Test'],
+                    ],
                 ]
             )
         ),
-        responses: [new OA\Response(response: 200, description: 'Updated')]
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Updated',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'success', type: 'boolean', example: true),
+                        new OA\Property(property: 'message', type: 'string', example: '2 parameter(s) updated.'),
+                    ]
+                )
+            ),
+            new OA\Response(response: 422, description: 'Unknown parameter key or validation error'),
+        ]
     )]
     public function systemParametersUpdate(): void {}
+
+    #[OA\Get(
+        path: '/api/v1/admin/system/parameters/debug-logging',
+        tags: ['Phase13-System'],
+        summary: 'Get debug logging status',
+        security: [['sanctum' => []]],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Current debug logging status',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'success', type: 'boolean', example: true),
+                        new OA\Property(
+                            property: 'data',
+                            properties: [
+                                new OA\Property(property: 'enabled', type: 'boolean', example: false),
+                                new OA\Property(property: 'updated_at', type: 'string', format: 'date-time', nullable: true),
+                                new OA\Property(property: 'updated_by', type: 'integer', nullable: true),
+                            ],
+                            type: 'object'
+                        ),
+                    ]
+                )
+            ),
+        ]
+    )]
+    public function systemParametersDebugLoggingStatus(): void {}
+
+    #[OA\Put(
+        path: '/api/v1/admin/system/parameters/debug-logging',
+        tags: ['Phase13-System'],
+        summary: 'Toggle debug logging',
+        security: [['sanctum' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['enabled'],
+                properties: [
+                    new OA\Property(property: 'enabled', type: 'boolean', example: true),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Debug logging updated'),
+            new OA\Response(response: 422, description: 'Validation error'),
+        ]
+    )]
+    public function systemParametersDebugLoggingToggle(): void {}
+
+    #[OA\Post(
+        path: '/api/v1/admin/system/parameters/reset',
+        tags: ['Phase13-System'],
+        summary: 'Reset system parameters to defaults',
+        security: [['sanctum' => []]],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'All configurable parameters restored to defaults',
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: 'success', type: 'boolean', example: true),
+                        new OA\Property(property: 'message', type: 'string', example: 'System parameters reset to default values.'),
+                        new OA\Property(property: 'data', type: 'object', description: 'Grouped parameters (same shape as list endpoint)'),
+                    ]
+                )
+            ),
+        ]
+    )]
+    public function systemParametersReset(): void {}
 
     #[OA\Post(
         path: '/api/v1/admin/system/maintenance',

@@ -25,6 +25,61 @@ class Phase14Endpoints
     )]
     public function ticketsIndex(): void {}
 
+    #[OA\Post(
+        path: '/api/v1/admin/tickets',
+        tags: ['Phase14-Support'],
+        summary: 'Create support ticket',
+        description: 'Create a ticket for the master queue. Status defaults to open (or in_progress when assigned). Supports optional file attachments via multipart/form-data.',
+        security: [['sanctum' => []]],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: [
+                'application/json' => new OA\MediaType(
+                    mediaType: 'application/json',
+                    schema: new OA\Schema(
+                        required: ['subject', 'description'],
+                        properties: [
+                            new OA\Property(property: 'subject', type: 'string', example: 'Settlement amount mismatch'),
+                            new OA\Property(property: 'description', type: 'string', example: 'Merchant reports settlement batch total does not match dashboard.'),
+                            new OA\Property(property: 'priority', type: 'string', enum: ['critical', 'high', 'medium', 'low'], example: 'high'),
+                            new OA\Property(property: 'category', type: 'string', enum: ['dispute', 'complaint', 'technical', 'billing', 'kyc', 'loan', 'settlement', 'agreement', 'other'], example: 'settlement'),
+                            new OA\Property(property: 'assigned_to', type: 'integer', nullable: true, example: 1),
+                            new OA\Property(property: 'source_role', type: 'string', enum: ['merchant', 'customer', 'store', 'lender_ops', 'internal'], example: 'merchant'),
+                            new OA\Property(property: 'reporter_name', type: 'string', example: 'Tech Superstore'),
+                            new OA\Property(property: 'reporter_email', type: 'string', format: 'email', example: 'ops@techsuperstore.com'),
+                            new OA\Property(property: 'reporter_phone', type: 'string', nullable: true, example: '9876543210'),
+                            new OA\Property(property: 'entity_type', type: 'string', example: 'merchant'),
+                            new OA\Property(property: 'entity_id', type: 'integer', example: 1),
+                        ]
+                    )
+                ),
+                'multipart/form-data' => new OA\MediaType(
+                    mediaType: 'multipart/form-data',
+                    schema: new OA\Schema(
+                        required: ['subject', 'description'],
+                        properties: [
+                            new OA\Property(property: 'subject', type: 'string'),
+                            new OA\Property(property: 'description', type: 'string'),
+                            new OA\Property(property: 'priority', type: 'string'),
+                            new OA\Property(property: 'category', type: 'string'),
+                            new OA\Property(property: 'assigned_to', type: 'integer'),
+                            new OA\Property(
+                                property: 'attachments',
+                                type: 'array',
+                                items: new OA\Items(type: 'string', format: 'binary')
+                            ),
+                        ]
+                    )
+                ),
+            ]
+        ),
+        responses: [
+            new OA\Response(response: 201, description: 'Ticket created'),
+            new OA\Response(response: 422, description: 'Validation error'),
+        ]
+    )]
+    public function ticketsStore(): void {}
+
     #[OA\Get(path: '/api/v1/admin/tickets/stats', tags: ['Phase14-Support'], summary: 'Ticket queue stats', security: [['sanctum' => []]], responses: [new OA\Response(response: 200, description: 'OK')])]
     public function ticketsStats(): void {}
 

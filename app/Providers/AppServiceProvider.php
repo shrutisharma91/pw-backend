@@ -19,6 +19,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        $this->app->booted(function () {
+            $this->app->make(\App\Services\SystemParameterService::class)->applyDebugLoggingFromStorage();
+        });
     }
 }

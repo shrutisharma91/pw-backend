@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Ticket\StoreTicketRequest;
+use App\Http\Resources\TicketResource;
 use App\Models\Ticket;
 use App\Models\TicketMessage;
 use App\Models\User;
+use App\Services\TicketService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -14,10 +17,13 @@ use Illuminate\Support\Facades\DB;
  */
 class TicketController extends Controller
 {
-    public function __construct()
+    public function __construct(private TicketService $ticketService)
     {
         $this->middleware('permission:support.tickets.view')
             ->only(['index', 'show', 'stats', 'sla']);
+
+        $this->middleware('permission:support.tickets.create')
+            ->only(['store']);
 
         $this->middleware('permission:support.tickets.edit')
             ->only(['update']);
@@ -83,6 +89,28 @@ class TicketController extends Controller
         });
 
         return response()->json(['success' => true, 'data' => $tickets]);
+    }
+
+    /**
+     * POST /api/admin/tickets
+     * Create a new support ticket
+     */
+    public function store(StoreTicketRequest $request)
+    {
+        $ticket = $this->ticketService->create(
+            $request->validatedPayload(),
+            $request->user(),
+            array_filter($request->file('attachments', []) ?? [])
+        );
+
+        $ticket->load('creator:id,name,email');
+        $ticket->sla = $this->slaPayload($ticket);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Ticket created successfully.',
+            'data'    => new TicketResource($ticket),
+        ], 201);
     }
 
     /**

@@ -3,10 +3,14 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\User\StoreUserRequest;
+use App\Http\Requests\User\UpdateUserRequest;
+use App\Http\Resources\UserDetailResource;
 use App\Mail\PasswordResetCode;
 use App\Models\User;
 use App\Models\AdminNotification;
 use App\Models\AuditLog;
+use App\Services\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,6 +35,8 @@ use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
+    public function __construct(private UserService $userService) {}
+
     private function ensureSuperAdmin(): ?JsonResponse
     {
         /** @var User|null $admin */
@@ -122,23 +128,7 @@ class UserController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => [
-                'id'                => $user->id,
-                'name'              => $user->name,
-                'email'             => $user->email,
-                'mobile'            => $user->mobile,
-                'role'              => $user->role,
-                'roles'             => $user->getRoleNames(),
-                'permissions'       => $user->getAllPermissions()->pluck('name'),
-                'merchant_id'       => $user->merchant_id,
-                'store_ids'         => $user->store_ids,
-                'mfa_enabled'       => $user->mfa_enabled,
-                'mfa_channel'       => $user->mfa_channel,
-                'is_active'         => $user->is_active,
-                'last_login_at'     => $user->last_login_at,
-                'last_login_ip'     => $user->last_login_ip,
-                'created_at'        => $user->created_at,
-            ],
+            'data'    => new UserDetailResource($user),
         ]);
     }
 
@@ -146,86 +136,53 @@ class UserController extends Controller
     // POST /api/v1/admin/users
     // Screen 10 — Create new user and send invite email
     // ------------------------------------------------------------------
-    public function store(Request $request)
+    public function store(StoreUserRequest $request)
     {
-        $request->validate([
-            'name'        => 'required|string|max:100',
-            'email'       => 'required|email|unique:users,email',
-            'mobile'      => 'required|string|size:10|unique:users,mobile',
-            'role'        => 'required|in:merchant_admin,store_manager,sales_exec,lender_ops,risk_user,customer',
-            'merchant_id' => 'nullable|integer',
-            'store_ids'   => 'nullable|array',
-            'mfa_enabled' => 'sometimes|boolean',
-        ]);
+        $result = $this->userService->createUser($request->validated());
+        $user = $result['user'];
+        $tempPassword = $result['temp_password'];
 
-        // Generate a temporary password
-        $tempPassword = Str::random(12) . '@1';
-
-        $user = User::create([
-            'name'        => $request->name,
-            'email'       => $request->email,
-            'mobile'      => $request->mobile,
-            'password'    => Hash::make($tempPassword),
-            'role'        => $request->role,
-            'merchant_id' => $request->merchant_id,
-            'store_ids'   => $request->store_ids,
-            'mfa_enabled' => $request->get('mfa_enabled', false),
-            'mfa_channel' => 'email',
-            'is_active'   => true,
-            'notification_channels' => [
-                'in_app' => true, 'email' => true, 'sms' => false, 'whatsapp' => false,
-            ],
-        ]);
-
-        // Assign role via Spatie
-        $user->assignRole($request->role);
-
-        // Log action
         Log::info("User {$user->id} ({$user->email}) created by admin " . auth()->id());
 
-        // Send invite email with temp password
-        $this->sendInviteEmail($user, $tempPassword);
+        $inviteSent = $this->sendInviteEmail($user, $tempPassword);
 
-        return response()->json([
+        $response = [
             'success' => true,
-            'message' => 'User created and invite sent to ' . $user->email,
+            'message' => $inviteSent
+                ? 'User created and invite sent to ' . $user->email
+                : 'User created successfully. Invite email could not be sent.',
             'data' => [
-                'id'    => $user->id,
-                'name'  => $user->name,
-                'email' => $user->email,
-                'role'  => $user->role,
+                'id'                     => $user->id,
+                'name'                   => $user->name,
+                'email'                  => $user->email,
+                'role'                   => $user->role,
+                'merchant_id'            => $user->merchant_id,
+                'merchant_scope'         => $user->merchant_scope,
+                'assigned_store_ids'     => $user->store_ids ?? [],
+                'force_mfa'              => (bool) $user->mfa_enabled,
+                'password_expiry_policy' => $user->password_expiry_policy,
+                'activation_date'        => $user->activation_date?->toDateString(),
+                'deactivation_date'      => $user->deactivation_date?->toDateString(),
+                'invite_sent'            => $inviteSent,
             ],
-        ], 201);
+        ];
+
+        if (app()->environment('local') && ! $inviteSent) {
+            $response['data']['debug_temp_password'] = $tempPassword;
+        }
+
+        return response()->json($response, 201);
     }
 
     // ------------------------------------------------------------------
     // PUT /api/v1/admin/users/{id}
     // Screen 10 — Edit existing user
     // ------------------------------------------------------------------
-    public function update(Request $request, int $id)
+    public function update(UpdateUserRequest $request, int $id)
     {
         $user = User::findOrFail($id);
 
-        $request->validate([
-            'name'        => 'sometimes|string|max:100',
-            'mobile'      => 'sometimes|string|size:10|unique:users,mobile,' . $id,
-            'role'        => 'sometimes|in:merchant_admin,store_manager,sales_exec,lender_ops,risk_user,customer',
-            'merchant_id' => 'nullable|integer',
-            'store_ids'   => 'nullable|array',
-            'mfa_enabled' => 'sometimes|boolean',
-        ]);
-
-        $updateData = $request->only([
-            'name', 'mobile', 'merchant_id', 'store_ids', 'mfa_enabled',
-        ]);
-
-        // Update role if changed
-        if ($request->filled('role') && $request->role !== $user->role) {
-            $user->syncRoles([$request->role]);
-            $updateData['role'] = $request->role;
-        }
-
-        $user->update($updateData);
+        $this->userService->updateUser($user, $request->validated());
 
         Log::info("User {$user->id} updated by admin " . auth()->id());
 
@@ -574,19 +531,27 @@ class UserController extends Controller
     // ------------------------------------------------------------------
     // Private helpers
     // ------------------------------------------------------------------
-    private function sendInviteEmail(User $user, string $tempPassword): void
+    private function sendInviteEmail(User $user, string $tempPassword): bool
     {
-        \Illuminate\Support\Facades\Mail::send([], [], function ($message) use ($user, $tempPassword) {
-            $message->to($user->email)
-                    ->subject('Welcome to FinZ — Your Account Details')
-                    ->html("
-                        <h2>Welcome to FinZ, {$user->name}!</h2>
-                        <p>Your account has been created by the Super Admin.</p>
-                        <p><b>Email:</b> {$user->email}</p>
-                        <p><b>Temporary Password:</b> {$tempPassword}</p>
-                        <p>Please login and change your password immediately.</p>
-                        <p>Login URL: " . config('app.frontend_url') . "</p>
-                    ");
-        });
+        try {
+            \Illuminate\Support\Facades\Mail::send([], [], function ($message) use ($user, $tempPassword) {
+                $message->to($user->email)
+                        ->subject('Welcome to FinZ — Your Account Details')
+                        ->html("
+                            <h2>Welcome to FinZ, {$user->name}!</h2>
+                            <p>Your account has been created by the Super Admin.</p>
+                            <p><b>Email:</b> {$user->email}</p>
+                            <p><b>Temporary Password:</b> {$tempPassword}</p>
+                            <p>Please login and change your password immediately.</p>
+                            <p>Login URL: " . config('app.frontend_url') . "</p>
+                        ");
+            });
+
+            return true;
+        } catch (\Throwable $e) {
+            Log::warning("Invite email failed for user {$user->id} ({$user->email}): {$e->getMessage()}");
+
+            return false;
+        }
     }
 }

@@ -44,6 +44,7 @@ return [
         ],
         'Documents'       => [
             'documents.view',
+            'documents.upload',
             'documents.share',
             'documents.ocr',
             'documents.delete',
@@ -68,6 +69,7 @@ return [
         ],
         'Support'         => [
             'support.tickets.view',
+            'support.tickets.create',
             'support.tickets.edit',
             'support.tickets.respond',
             'support.tickets.escalate',

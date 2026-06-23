@@ -52,7 +52,11 @@ class User extends Authenticatable implements JWTSubject
         'is_active',
         'password_changed_at',
         'merchant_id',           // null for super admin
+        'merchant_scope',        // platform, merchant, store
         'store_ids',             // JSON array for store managers
+        'password_expiry_policy',
+        'activation_date',
+        'deactivation_date',
         'mfa_recovery_codes',
     ];
 
@@ -69,6 +73,8 @@ class User extends Authenticatable implements JWTSubject
         'locked_until'           => 'datetime',
         'last_login_at'          => 'datetime',
         'password_changed_at'    => 'datetime',
+        'activation_date'        => 'date',
+        'deactivation_date'      => 'date',
         'mfa_enabled'            => 'boolean',
         'is_active'              => 'boolean',
         'notification_channels'  => 'array',
@@ -138,6 +144,11 @@ class User extends Authenticatable implements JWTSubject
     }
 
     // Relationships
+    public function merchant()
+    {
+        return $this->belongsTo(Merchant::class);
+    }
+
     public function sessions()
     {
         return $this->hasMany(AdminSession::class);

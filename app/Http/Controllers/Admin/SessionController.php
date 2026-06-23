@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Session\BulkRevokeSessionsRequest;
 use App\Models\AdminSession;
 use App\Models\User;
 use App\Models\RoleConfig;
+use App\Services\SessionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -18,6 +20,7 @@ use Illuminate\Support\Facades\Log;
 |
 | APIs:
 |   GET  /api/v1/admin/sessions                        → all active sessions
+|   POST /api/v1/admin/sessions/bulk-revoke            → force logout multiple sessions
 |   POST /api/v1/admin/sessions/{id}/revoke            → force logout one session
 |   POST /api/v1/admin/sessions/users/{userId}/revoke-all → logout all sessions for a user
 |   GET  /api/v1/admin/sessions/suspicious             → flagged sessions
@@ -26,6 +29,8 @@ use Illuminate\Support\Facades\Log;
 
 class SessionController extends Controller
 {
+    public function __construct(private SessionService $sessionService) {}
+
     // ------------------------------------------------------------------
     // GET /api/v1/admin/sessions
     // All active sessions — user, role, IP, device, login time
@@ -76,6 +81,24 @@ class SessionController extends Controller
                 'current_page' => $sessions->currentPage(),
                 'last_page'    => $sessions->lastPage(),
             ],
+        ]);
+    }
+
+    // ------------------------------------------------------------------
+    // POST /api/v1/admin/sessions/bulk-revoke
+    // Force logout multiple sessions in one request
+    // ------------------------------------------------------------------
+    public function bulkRevoke(BulkRevokeSessionsRequest $request)
+    {
+        $result = $this->sessionService->bulkRevokeSessions(
+            $request->input('session_ids'),
+            auth()->id()
+        );
+
+        return response()->json([
+            'success'       => true,
+            'revoked_count' => $result['revoked_count'],
+            'failed_count'  => $result['failed_count'],
         ]);
     }
 

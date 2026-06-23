@@ -8,6 +8,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Document extends Model
 {
     protected $fillable = [
+        'title',
+        'description',
+        'tags',
         'document_type',
         'entity_type',
         'entity_id',
@@ -27,6 +30,7 @@ class Document extends Model
     ];
 
     protected $casts = [
+        'tags'            => 'array',
         'retention_until' => 'datetime',
         'deleted_at'      => 'datetime',
     ];

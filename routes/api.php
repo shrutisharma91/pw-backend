@@ -113,8 +113,9 @@ Route::prefix('v1')->group(function () {
 
         // ----- Screen 04: Profile & Personal Settings -----
         Route::prefix('profile')->group(function () {
-            Route::get('/', [ProfileController::class, 'show']);           // Get profile
-            Route::put('/', [ProfileController::class, 'update']);         // Update name/mobile/photo
+            Route::get('/', [ProfileController::class, 'show']);
+            Route::put('/', [ProfileController::class, 'update']);
+            Route::post('/change-password', [ProfileController::class, 'changePassword']);
         });
 
         // ----- Screen 05: Notification Center -----
@@ -196,10 +197,11 @@ Route::prefix('permissions')->group(function () {
 // Screen 13 — Session & Device Management
 Route::prefix('sessions')->group(function () {
     Route::get('/', [SessionController::class, 'index']);                          // All active sessions
-    Route::post('/{id}/revoke', [SessionController::class, 'revoke']);             // Force logout one session
-    Route::post('/users/{userId}/revoke-all', [SessionController::class, 'revokeAll']); // Logout all sessions for user
+    Route::post('/bulk-revoke', [SessionController::class, 'bulkRevoke']);          // Bulk revoke sessions
     Route::get('/suspicious', [SessionController::class, 'suspicious']);           // Flagged sessions
     Route::put('/ip-rules', [SessionController::class, 'updateIPRules']);          // IP allowlist/denylist
+    Route::post('/users/{userId}/revoke-all', [SessionController::class, 'revokeAll']); // Logout all sessions for user
+    Route::post('/{id}/revoke', [SessionController::class, 'revoke']);             // Force logout one session
 });
 
         // ----- Phase 4: Merchant Lifecycle -----
@@ -537,6 +539,7 @@ Route::prefix('sessions')->group(function () {
             Route::prefix('documents')->group(function () {
                 Route::get('/stats',              [DocumentRepositoryController::class, 'stats']);
                 Route::get('/',                   [DocumentRepositoryController::class, 'index']);
+                Route::post('/',                  [DocumentRepositoryController::class, 'store']);
                 Route::get('/{id}',               [DocumentRepositoryController::class, 'show'])->whereNumber('id');
                 Route::get('/{id}/preview',       [DocumentRepositoryController::class, 'preview'])->whereNumber('id');
                 Route::post('/{id}/share',        [DocumentRepositoryController::class, 'share'])->whereNumber('id');
@@ -591,11 +594,14 @@ Route::prefix('sessions')->group(function () {
 
             // Screen 55 — System Parameters & Settings
             Route::prefix('system')->group(function () {
-                Route::get('/parameters',          [SystemParameterController::class, 'index']);
-                Route::get('/parameters/audit',    [SystemParameterController::class, 'audit']);
-                Route::get('/parameters/{key}',    [SystemParameterController::class, 'show']);
-                Route::put('/parameters',          [SystemParameterController::class, 'update']);
-                Route::post('/maintenance',        [SystemParameterController::class, 'toggleMaintenance']);
+                Route::get('/parameters',                  [SystemParameterController::class, 'index']);
+                Route::get('/parameters/audit',            [SystemParameterController::class, 'audit']);
+                Route::get('/parameters/debug-logging',    [SystemParameterController::class, 'debugLoggingStatus']);
+                Route::put('/parameters/debug-logging',    [SystemParameterController::class, 'toggleDebugLogging']);
+                Route::post('/parameters/reset',          [SystemParameterController::class, 'resetToDefaults']);
+                Route::get('/parameters/{key}',            [SystemParameterController::class, 'show']);
+                Route::put('/parameters',                  [SystemParameterController::class, 'update']);
+                Route::post('/maintenance',                [SystemParameterController::class, 'toggleMaintenance']);
             });
 
             // ─────────────────────────────────────────────────────────────────────
@@ -607,6 +613,7 @@ Route::prefix('sessions')->group(function () {
                 Route::get('/stats',                  [TicketController::class, 'stats']);
                 Route::post('/bulk',                  [TicketController::class, 'bulk']);
                 Route::get('/',                       [TicketController::class, 'index']);
+                Route::post('/',                      [TicketController::class, 'store']);
                 Route::get('/{id}',                   [TicketController::class, 'show'])->whereNumber('id');
                 Route::put('/{id}',                   [TicketController::class, 'update'])->whereNumber('id');
                 Route::get('/{id}/sla',               [TicketController::class, 'sla'])->whereNumber('id');

@@ -63,6 +63,11 @@ class Ticket extends Model
         return $this->hasMany(TicketLink::class);
     }
 
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
     public function assignee(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_to');

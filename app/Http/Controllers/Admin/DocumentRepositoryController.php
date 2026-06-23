@@ -3,12 +3,16 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Document\StoreDocumentRequest;
+use App\Http\Resources\DocumentResource;
 use App\Models\Document;
 use App\Jobs\RunOcrJob;
 use App\Jobs\VirusScanJob;
+use App\Services\DocumentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 
 /**
@@ -22,10 +26,13 @@ class DocumentRepositoryController extends Controller
 
     private const SENSITIVE_FIELDS = ['aadhaar_number', 'pan_number', 'account_number'];
 
-    public function __construct()
+    public function __construct(private DocumentService $documentService)
     {
         $this->middleware('permission:documents.view')
             ->only(['index', 'show', 'preview', 'stats']);
+
+        $this->middleware('permission:documents.upload')
+            ->only(['store']);
 
         $this->middleware('permission:documents.share')
             ->only(['share']);
@@ -66,7 +73,7 @@ class DocumentRepositoryController extends Controller
             ->when($request->end_date,    fn($q) => $q->whereDate('created_at', '<=', $request->end_date))
             ->whereNull('deleted_at')
             ->select([
-                'id', 'document_type', 'entity_type', 'entity_id', 'original_filename',
+                'id', 'title', 'description', 'tags', 'document_type', 'entity_type', 'entity_id', 'original_filename',
                 'file_size_bytes', 'mime_type', 'status', 'ocr_status', 'virus_scan_status',
                 'version', 'created_at', 'uploaded_by',
             ])
@@ -74,6 +81,33 @@ class DocumentRepositoryController extends Controller
             ->paginate(25);
 
         return response()->json(['success' => true, 'data' => $docs]);
+    }
+
+    /**
+     * POST /api/admin/documents
+     * Upload a document to the repository vault
+     */
+    public function store(StoreDocumentRequest $request)
+    {
+        $document = $this->documentService->upload(
+            [
+                'title'         => $request->input('title'),
+                'description'   => $request->input('description'),
+                'tags'          => $request->input('tags'),
+                'document_type' => $request->documentType(),
+                'entity_type'   => $request->input('entity_type'),
+                'entity_id'     => $request->input('entity_id'),
+                'status'        => $request->input('status', 'pending_ocr'),
+            ],
+            $request->file('file'),
+            (int) auth()->id()
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Document uploaded successfully.',
+            'data'    => new DocumentResource($document),
+        ], 201);
     }
 
     /**
@@ -88,7 +122,11 @@ class DocumentRepositoryController extends Controller
             'success' => true,
             'data'    => [
                 'id'                => $doc->id,
+                'title'             => $doc->title,
+                'description'       => $doc->description,
+                'tags'              => $doc->tags ?? [],
                 'document_type'     => $doc->document_type,
+                'category'          => $doc->document_type,
                 'entity_type'       => $doc->entity_type,
                 'entity_id'         => $doc->entity_id,
                 'original_filename' => $doc->original_filename,
@@ -123,7 +161,7 @@ class DocumentRepositoryController extends Controller
         }
 
         // Generate signed URL valid for 15 minutes (fallback for local R2 stand-in)
-        $signedUrl = $this->storageTemporaryUrl($doc->storage_path, now()->addMinutes(15));
+        $signedUrl = $this->storageTemporaryUrl($doc->id, $doc->storage_path, now()->addMinutes(15));
 
         activity()->log("Document previewed: doc#{$id} by admin#" . auth()->id());
 
@@ -149,7 +187,7 @@ class DocumentRepositoryController extends Controller
 
         $doc = Document::whereNull('deleted_at')->findOrFail($id);
 
-        $signedUrl = $this->storageTemporaryUrl($doc->storage_path, now()->addMinutes($request->expiry_minutes));
+        $signedUrl = $this->storageTemporaryUrl($doc->id, $doc->storage_path, now()->addMinutes($request->expiry_minutes));
 
         DB::table('document_shares')->insert([
             'document_id'    => $id,
@@ -250,15 +288,15 @@ class DocumentRepositoryController extends Controller
         return response()->json(['success' => true, 'message' => 'Retention policy updated.']);
     }
 
-    private function storageTemporaryUrl(string $storagePath, \DateTimeInterface $expiresAt): string
+    private function storageTemporaryUrl(int $documentId, string $storagePath, \DateTimeInterface $expiresAt): string
     {
         $disk = Storage::disk(self::STORAGE_DISK);
 
         try {
             return $disk->temporaryUrl($storagePath, $expiresAt);
         } catch (\Throwable $e) {
-            // Local stand-in for R2 may not support temporaryUrl() — return best-effort URL/path.
-            return $disk->url($storagePath) ?: $disk->path($storagePath);
+            // Local stand-in for R2 — serve via signed app route (no public /storage symlink).
+            return URL::temporarySignedRoute('documents.serve', $expiresAt, ['id' => $documentId]);
         }
     }
 }
