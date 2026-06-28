@@ -246,9 +246,84 @@
                 "tags": [
                     "2. Personal Profile"
                 ],
-                "summary": "Update Profile Details",
-                "description": "Updates name, email, mobile, theme, timezone, notification preferences, and optional profile photo.",
+                "summary": "Update Profile Details (JSON, no file)",
+                "description": "Updates name, email, mobile, theme, timezone, and notification preferences. For profile photo uploads use the POST variant (multipart/form-data is not parsed on PUT).",
                 "operationId": "dcb855bf3edc082d334193d266e969a3",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "name": {
+                                        "type": "string",
+                                        "example": "Updated Name"
+                                    },
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "admin@finz.com"
+                                    },
+                                    "mobile": {
+                                        "type": "string",
+                                        "example": "9876543210"
+                                    },
+                                    "theme": {
+                                        "type": "string",
+                                        "example": "dark",
+                                        "enum": [
+                                            "light",
+                                            "dark"
+                                        ]
+                                    },
+                                    "timezone": {
+                                        "type": "string",
+                                        "example": "Asia/Kolkata"
+                                    },
+                                    "notification_preferences": {
+                                        "properties": {
+                                            "email": {
+                                                "type": "boolean",
+                                                "example": true
+                                            },
+                                            "sms": {
+                                                "type": "boolean",
+                                                "example": false
+                                            },
+                                            "whatsapp": {
+                                                "type": "boolean",
+                                                "example": false
+                                            },
+                                            "in_app": {
+                                                "type": "boolean",
+                                                "example": true
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Profile updated successfully."
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "2. Personal Profile"
+                ],
+                "summary": "Update Profile Details (multipart / photo upload)",
+                "description": "Use this POST variant for multipart/form-data uploads (e.g. profile photo). PHP cannot parse multipart bodies on PUT, so file uploads must be sent via POST. Updates name, email, mobile, theme, timezone, notification preferences, and optional profile photo.",
+                "operationId": "e00aded39c0de85a4e903706994080cb",
                 "requestBody": {
                     "content": {
                         "multipart/form-data": {
@@ -1404,6 +1479,11 @@
                                         "type": "string",
                                         "example": "finance_ops"
                                     },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "example": "Finance operations team with read access to users and roles."
+                                    },
                                     "permissions": {
                                         "type": "array",
                                         "items": {
@@ -1458,7 +1538,8 @@
                 }
             },
             "put": {
-                "summary": "Rename Dynamic Role",
+                "summary": "Update Dynamic Role (rename / description)",
+                "description": "Renames a custom role and/or updates its description. Built-in roles cannot be renamed but their description can be edited (send only the description field).",
                 "tags": [
                     "8. Role Management"
                 ],
@@ -1483,13 +1564,15 @@
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "required": [
-                                    "name"
-                                ],
                                 "properties": {
                                     "name": {
                                         "type": "string",
                                         "example": "senior_ops"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "example": "Senior operations team with elevated approval limits."
                                     }
                                 }
                             }
@@ -1563,6 +1646,11 @@
                                     "new_name": {
                                         "type": "string",
                                         "example": "merchant_read_only"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "example": "Read-only variant cloned from merchant_admin."
                                     }
                                 }
                             }
@@ -9967,6 +10055,197 @@
                 ]
             }
         },
+        "/api/v1/admin/profile/mfa": {
+            "get": {
+                "tags": [
+                    "2. Personal Profile"
+                ],
+                "summary": "Get MFA configuration status",
+                "description": "Returns the current MFA channel, whether an authenticator app is configured, and how many recovery codes remain.",
+                "operationId": "5b6d29a50f6ecbe27ece6897e7ec052a",
+                "responses": {
+                    "200": {
+                        "description": "MFA status fetched successfully."
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/profile/mfa/setup": {
+            "post": {
+                "tags": [
+                    "2. Personal Profile"
+                ],
+                "summary": "Begin authenticator (TOTP) reconfiguration",
+                "description": "Re-authenticates with the current password and returns a fresh TOTP secret plus an otpauth URI for QR rendering. The secret is not active until confirmed via /profile/mfa/confirm.",
+                "operationId": "86a537f6b822402557fd12d2bc564840",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "current_password"
+                                ],
+                                "properties": {
+                                    "current_password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "Current@password123"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Setup initiated; scan the QR and confirm."
+                    },
+                    "422": {
+                        "description": "Validation error."
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/profile/mfa/confirm": {
+            "post": {
+                "tags": [
+                    "2. Personal Profile"
+                ],
+                "summary": "Confirm authenticator (TOTP) reconfiguration",
+                "description": "Verifies a code from the authenticator app, activates TOTP as the MFA channel, and returns a fresh set of recovery codes (shown only once).",
+                "operationId": "791fc228294d2169038833db1e439152",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "code"
+                                ],
+                                "properties": {
+                                    "code": {
+                                        "type": "string",
+                                        "example": "123456"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Authenticator configured; recovery codes returned."
+                    },
+                    "422": {
+                        "description": "Invalid or expired code."
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/profile/mfa/use-email": {
+            "post": {
+                "tags": [
+                    "2. Personal Profile"
+                ],
+                "summary": "Switch MFA channel to email OTP",
+                "description": "Reverts the MFA channel to email OTP and removes any configured authenticator secret. Requires the current password.",
+                "operationId": "b7062602a9b64b1476e46e178eb59129",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "current_password"
+                                ],
+                                "properties": {
+                                    "current_password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "Current@password123"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "MFA channel switched to email."
+                    },
+                    "422": {
+                        "description": "Validation error."
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/profile/recovery-codes/regenerate": {
+            "post": {
+                "tags": [
+                    "2. Personal Profile"
+                ],
+                "summary": "Regenerate MFA recovery codes",
+                "description": "Issues a fresh set of single-use recovery codes (shown only once) and invalidates all previous codes. Requires the current password.",
+                "operationId": "a3eb9046eafa770dde317cd575e02d98",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "current_password"
+                                ],
+                                "properties": {
+                                    "current_password": {
+                                        "type": "string",
+                                        "format": "password",
+                                        "example": "Current@password123"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "New recovery codes generated."
+                    },
+                    "422": {
+                        "description": "Validation error."
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
         "/api/v1/admin/risk-rules": {
             "get": {
                 "tags": [
@@ -10245,6 +10524,47 @@
                     },
                     "422": {
                         "description": "Validation error"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/sessions/revoke-all-suspicious": {
+            "post": {
+                "tags": [
+                    "10. Device & Sessions"
+                ],
+                "summary": "Revoke all suspicious sessions",
+                "description": "Force-logout every active session currently flagged as suspicious, across all users platform-wide. Returns how many sessions were revoked.",
+                "operationId": "f2e0226d6de4871980d72d6dd1566e8c",
+                "responses": {
+                    "200": {
+                        "description": "Suspicious sessions revoked",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "4 suspicious session(s) revoked across the platform."
+                                        },
+                                        "sessions_revoked": {
+                                            "type": "integer",
+                                            "example": 4
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     }
                 },
                 "security": [
@@ -10937,6 +11257,70 @@
                 "responses": {
                     "200": {
                         "description": "Escalated"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/admin/tickets/{id}/reassign": {
+            "post": {
+                "tags": [
+                    "Phase14-Support"
+                ],
+                "summary": "Reassign ticket",
+                "description": "Transfers ownership of a single ticket to another admin user. Validates the target assignee exists, requires the support.tickets.reassign permission, stamps the reassignment time and actor, records an internal history note on the thread, and writes an audit-log entry.",
+                "operationId": "62d81a1470e218760b1dc2c385fc6894",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "assignee_id"
+                                ],
+                                "properties": {
+                                    "assignee_id": {
+                                        "description": "ID of the user to assign the ticket to.",
+                                        "type": "integer",
+                                        "example": 2
+                                    },
+                                    "note": {
+                                        "type": "string",
+                                        "example": "Handing over to settlements specialist.",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Ticket reassigned"
+                    },
+                    "403": {
+                        "description": "Missing support.tickets.reassign permission"
+                    },
+                    "404": {
+                        "description": "Ticket not found"
+                    },
+                    "422": {
+                        "description": "Validation error"
                     }
                 },
                 "security": [

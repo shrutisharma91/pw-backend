@@ -1284,6 +1284,11 @@
                                         "type": "string",
                                         "example": "finance_ops"
                                     },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "example": "Finance operations team with read access to users and roles."
+                                    },
                                     "permissions": {
                                         "type": "array",
                                         "items": {
@@ -1338,7 +1343,8 @@
                 }
             },
             "put": {
-                "summary": "Rename Dynamic Role",
+                "summary": "Update Dynamic Role (rename / description)",
+                "description": "Renames a custom role and/or updates its description. Built-in roles cannot be renamed but their description can be edited (send only the description field).",
                 "tags": [
                     "8. Role Management"
                 ],
@@ -1363,13 +1369,15 @@
                         "application/json": {
                             "schema": {
                                 "type": "object",
-                                "required": [
-                                    "name"
-                                ],
                                 "properties": {
                                     "name": {
                                         "type": "string",
                                         "example": "senior_ops"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "example": "Senior operations team with elevated approval limits."
                                     }
                                 }
                             }
@@ -1443,6 +1451,11 @@
                                     "new_name": {
                                         "type": "string",
                                         "example": "merchant_read_only"
+                                    },
+                                    "description": {
+                                        "type": "string",
+                                        "nullable": true,
+                                        "example": "Read-only variant cloned from merchant_admin."
                                     }
                                 }
                             }

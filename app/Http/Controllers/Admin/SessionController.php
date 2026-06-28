@@ -152,6 +152,21 @@ class SessionController extends Controller
     }
 
     // ------------------------------------------------------------------
+    // POST /api/v1/admin/sessions/revoke-all-suspicious
+    // Force logout EVERY active session flagged as suspicious, platform-wide
+    // ------------------------------------------------------------------
+    public function revokeAllSuspicious()
+    {
+        $revoked = $this->sessionService->revokeAllSuspicious(auth()->id());
+
+        return response()->json([
+            'success'          => true,
+            'message'          => "{$revoked} suspicious session(s) revoked across the platform.",
+            'sessions_revoked' => $revoked,
+        ]);
+    }
+
+    // ------------------------------------------------------------------
     // GET /api/v1/admin/sessions/suspicious
     // Sessions flagged as suspicious
     // ------------------------------------------------------------------

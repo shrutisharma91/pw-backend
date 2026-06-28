@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Ticket\ReassignTicketRequest;
 use App\Http\Requests\Ticket\StoreTicketRequest;
 use App\Http\Resources\TicketResource;
 use App\Models\Ticket;
@@ -33,6 +34,9 @@ class TicketController extends Controller
 
         $this->middleware('permission:support.tickets.escalate')
             ->only(['escalate']);
+
+        $this->middleware('permission:support.tickets.reassign')
+            ->only(['reassign']);
 
         $this->middleware('permission:support.tickets.bulk')
             ->only(['bulk']);
@@ -325,6 +329,32 @@ class TicketController extends Controller
             'success' => true,
             'message' => 'Ticket escalated.',
             'data'    => $ticket->fresh(['escalatedToUser:id,name,email']),
+        ]);
+    }
+
+    /**
+     * POST /api/admin/tickets/{id}/reassign
+     * Reassign ticket ownership to another admin (Screen 57 action)
+     */
+    public function reassign(ReassignTicketRequest $request, int $id)
+    {
+        $ticket = Ticket::with('assignee:id,name,email')->findOrFail($id);
+
+        $newAssignee = User::findOrFail($request->integer('assignee_id'));
+
+        $ticket = $this->ticketService->reassign(
+            $ticket,
+            $newAssignee,
+            $request->user(),
+            $request->input('note')
+        );
+
+        $ticket->sla = $this->slaPayload($ticket);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Ticket reassigned successfully.',
+            'data'    => new TicketResource($ticket),
         ]);
     }
 

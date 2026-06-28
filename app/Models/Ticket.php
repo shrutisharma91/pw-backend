@@ -35,6 +35,8 @@ class Ticket extends Model
         'csat_requested_at',
         'escalated_at',
         'escalated_to',
+        'reassigned_at',
+        'reassigned_by',
         'created_by',
     ];
 
@@ -46,6 +48,7 @@ class Ticket extends Model
         'closed_at'             => 'datetime',
         'csat_requested_at'     => 'datetime',
         'escalated_at'          => 'datetime',
+        'reassigned_at'         => 'datetime',
     ];
 
     public function messages(): HasMany
@@ -76,5 +79,10 @@ class Ticket extends Model
     public function escalatedToUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'escalated_to');
+    }
+
+    public function reassignedByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reassigned_by');
     }
 }

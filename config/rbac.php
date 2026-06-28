@@ -73,6 +73,7 @@ return [
             'support.tickets.edit',
             'support.tickets.respond',
             'support.tickets.escalate',
+            'support.tickets.reassign',
             'support.tickets.bulk',
         ],
     ],

@@ -174,6 +174,32 @@ class Phase14Endpoints
     public function ticketsEscalate(): void {}
 
     #[OA\Post(
+        path: '/api/v1/admin/tickets/{id}/reassign',
+        tags: ['Phase14-Support'],
+        summary: 'Reassign ticket',
+        description: 'Transfers ownership of a single ticket to another admin user. Validates the target assignee exists, requires the support.tickets.reassign permission, stamps the reassignment time and actor, records an internal history note on the thread, and writes an audit-log entry.',
+        security: [['sanctum' => []]],
+        parameters: [new OA\Parameter(name: 'id', in: 'path', required: true, schema: new OA\Schema(type: 'integer'))],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['assignee_id'],
+                properties: [
+                    new OA\Property(property: 'assignee_id', type: 'integer', example: 2, description: 'ID of the user to assign the ticket to.'),
+                    new OA\Property(property: 'note', type: 'string', nullable: true, example: 'Handing over to settlements specialist.'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Ticket reassigned'),
+            new OA\Response(response: 403, description: 'Missing support.tickets.reassign permission'),
+            new OA\Response(response: 404, description: 'Ticket not found'),
+            new OA\Response(response: 422, description: 'Validation error'),
+        ]
+    )]
+    public function ticketsReassign(): void {}
+
+    #[OA\Post(
         path: '/api/v1/admin/tickets/{id}/resolve',
         tags: ['Phase14-Support'],
         summary: 'Resolve ticket',

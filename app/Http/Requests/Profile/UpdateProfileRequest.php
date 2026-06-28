@@ -11,6 +11,25 @@ class UpdateProfileRequest extends FormRequest
         return true;
     }
 
+    /**
+     * In multipart/form-data requests object fields arrive as JSON strings.
+     * Decode them so the array validation rules apply correctly.
+     */
+    protected function prepareForValidation(): void
+    {
+        foreach (['notification_preferences', 'notification_channels'] as $field) {
+            $value = $this->input($field);
+
+            if (is_string($value) && $value !== '') {
+                $decoded = json_decode($value, true);
+
+                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                    $this->merge([$field => $decoded]);
+                }
+            }
+        }
+    }
+
     public function rules(): array
     {
         $userId = $this->user()->id;

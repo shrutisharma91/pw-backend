@@ -25,6 +25,13 @@ class TicketResource extends JsonResource
                 'name'  => $this->assignee->name,
                 'email' => $this->assignee->email,
             ]),
+            'reassigned_at'  => $this->reassigned_at,
+            'reassigned_by'  => $this->reassigned_by,
+            'reassigned_by_user' => $this->whenLoaded('reassignedByUser', fn () => [
+                'id'    => $this->reassignedByUser->id,
+                'name'  => $this->reassignedByUser->name,
+                'email' => $this->reassignedByUser->email,
+            ]),
             'reporter_name'  => $this->reporter_name,
             'reporter_email' => $this->reporter_email,
             'reporter_phone' => $this->reporter_phone,
