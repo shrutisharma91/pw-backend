@@ -163,9 +163,62 @@ class ProductController extends Controller
             'file' => 'required|file|mimes:csv,txt'
         ]);
 
-        // Mock implementation for bulk importing products from a CSV
-        // Typically involves parsing the CSV, mapping columns, and batch inserting records.
+        $file = $request->file('file');
+        $handle = fopen($file->getRealPath(), 'r');
+        $header = fgetcsv($handle);
         
-        return response()->json(['message' => 'Products imported successfully']);
+        if (!$header) {
+            return response()->json(['message' => 'Invalid CSV format'], 400);
+        }
+        
+        // Remove BOM from the first column if present
+        $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
+        
+        // Clean up headers (trim and lowercase)
+        $header = array_map(function($col) { return strtolower(trim($col)); }, $header);
+        
+        $products = [];
+        $now = now();
+        
+        $merchantId = $request->input('merchant_id');
+
+        while (($row = fgetcsv($handle)) !== false) {
+            if (count($header) !== count($row)) {
+                continue;
+            }
+            
+            $data = array_combine($header, $row);
+            
+            // Allow merchant_id from form payload if missing in CSV
+            $rowMerchantId = $data['merchant_id'] ?? $merchantId;
+            
+            if (!$rowMerchantId) {
+                return response()->json(['message' => 'merchant_id is required either in CSV or form payload'], 422);
+            }
+
+            $products[] = [
+                'merchant_id' => $rowMerchantId,
+                'category_id' => $data['category_id'] ?? null,
+                'brand_id' => $data['brand_id'] ?? null,
+                'name' => $data['name'] ?? 'Unknown Product',
+                'sku' => $data['sku'] ?? null,
+                'price' => $data['price'] ?? 0,
+                'status' => $data['status'] ?? 'active',
+                'financing_eligibility' => isset($data['financing_eligibility']) ? filter_var($data['financing_eligibility'], FILTER_VALIDATE_BOOLEAN) : true,
+                'flagged_for_review' => false,
+                'delist_reason' => null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+        fclose($handle);
+
+        if (!empty($products)) {
+            foreach (array_chunk($products, 500) as $chunk) {
+                Product::insert($chunk);
+            }
+        }
+        
+        return response()->json(['message' => count($products) . ' products imported successfully']);
     }
 }
