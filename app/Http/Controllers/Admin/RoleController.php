@@ -46,6 +46,7 @@ class RoleController extends Controller
         return [
             'id'           => $role->id,
             'name'         => $role->name,
+            'description'  => $role->description,
             'guard_name'   => $role->guard_name,
             'is_builtin'   => RbacCatalog::isBuiltinRole($role->name),
             'user_count'   => $userCounts[$role->id] ?? 0,
@@ -118,6 +119,7 @@ class RoleController extends Controller
                 Rule::unique('roles', 'name')->where('guard_name', $guard),
                 Rule::notIn(RbacCatalog::builtinRoles()),
             ],
+            'description'   => 'sometimes|nullable|string|max:255',
             'permissions'   => 'sometimes|array',
             'permissions.*' => ['string', Rule::in(RbacCatalog::allPermissionNames())],
         ], [
@@ -126,8 +128,9 @@ class RoleController extends Controller
         ]);
 
         $role = Role::create([
-            'name'       => $request->name,
-            'guard_name' => $guard,
+            'name'        => $request->name,
+            'guard_name'  => $guard,
+            'description' => $request->input('description'),
         ]);
 
         if ($request->filled('permissions')) {
@@ -161,8 +164,10 @@ class RoleController extends Controller
     {
         $role = $this->findApiRole($id);
         $guard = $this->apiGuard();
+        $isBuiltin = RbacCatalog::isBuiltinRole($role->name);
 
-        if (RbacCatalog::isBuiltinRole($role->name)) {
+        // Built-in roles cannot be renamed, but their description may still be edited.
+        if ($isBuiltin && $request->filled('name') && $request->name !== $role->name) {
             return response()->json([
                 'success' => false,
                 'message' => 'Built-in roles cannot be renamed.',
@@ -171,21 +176,38 @@ class RoleController extends Controller
 
         $request->validate([
             'name' => [
-                'required',
+                $isBuiltin ? 'sometimes' : 'required',
                 'string',
                 'max:100',
                 'regex:/^[a-z][a-z0-9_]*$/',
                 Rule::unique('roles', 'name')->where('guard_name', $guard)->ignore($role->id),
                 Rule::notIn(RbacCatalog::builtinRoles()),
             ],
+            'description' => 'sometimes|nullable|string|max:255',
         ]);
 
         $oldName = $role->name;
-        $role->update(['name' => $request->name]);
 
-        RoleConfig::where('role_name', $oldName)->update(['role_name' => $request->name]);
+        $updates = [];
 
-        Log::info("Role '{$oldName}' renamed to '{$request->name}' by admin " . auth()->id());
+        if (! $isBuiltin && $request->filled('name')) {
+            $updates['name'] = $request->name;
+        }
+
+        if ($request->has('description')) {
+            $updates['description'] = $request->input('description');
+        }
+
+        if ($updates !== []) {
+            $role->update($updates);
+        }
+
+        if (isset($updates['name']) && $updates['name'] !== $oldName) {
+            RoleConfig::where('role_name', $oldName)->update(['role_name' => $updates['name']]);
+            Log::info("Role '{$oldName}' renamed to '{$updates['name']}' by admin " . auth()->id());
+        } else {
+            Log::info("Role '{$oldName}' updated by admin " . auth()->id());
+        }
 
         return response()->json([
             'success' => true,
@@ -211,11 +233,13 @@ class RoleController extends Controller
                 Rule::unique('roles', 'name')->where('guard_name', $guard),
                 Rule::notIn(RbacCatalog::builtinRoles()),
             ],
+            'description' => 'sometimes|nullable|string|max:255',
         ]);
 
         $newRole = Role::create([
-            'name'       => $request->new_name,
-            'guard_name' => $guard,
+            'name'        => $request->new_name,
+            'guard_name'  => $guard,
+            'description' => $request->input('description', $sourceRole->description),
         ]);
 
         $newRole->syncPermissions($sourceRole->permissions);

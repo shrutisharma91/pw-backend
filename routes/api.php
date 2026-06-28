@@ -115,7 +115,17 @@ Route::prefix('v1')->group(function () {
         Route::prefix('profile')->group(function () {
             Route::get('/', [ProfileController::class, 'show']);
             Route::put('/', [ProfileController::class, 'update']);
+            // POST alias: PHP does not parse multipart/form-data on PUT, so file
+            // uploads (profile photo) must use POST (optionally with _method=PUT).
+            Route::post('/', [ProfileController::class, 'update']);
             Route::post('/change-password', [ProfileController::class, 'changePassword']);
+
+            // MFA reconfigure & recovery codes
+            Route::get('/mfa', [ProfileController::class, 'mfaStatus']);
+            Route::post('/mfa/setup', [ProfileController::class, 'mfaSetup']);
+            Route::post('/mfa/confirm', [ProfileController::class, 'mfaConfirm']);
+            Route::post('/mfa/use-email', [ProfileController::class, 'mfaUseEmail']);
+            Route::post('/recovery-codes/regenerate', [ProfileController::class, 'regenerateRecoveryCodes']);
         });
 
         // ----- Screen 05: Notification Center -----
@@ -198,6 +208,7 @@ Route::prefix('permissions')->group(function () {
 Route::prefix('sessions')->group(function () {
     Route::get('/', [SessionController::class, 'index']);                          // All active sessions
     Route::post('/bulk-revoke', [SessionController::class, 'bulkRevoke']);          // Bulk revoke sessions
+    Route::post('/revoke-all-suspicious', [SessionController::class, 'revokeAllSuspicious']); // Revoke ALL suspicious sessions platform-wide
     Route::get('/suspicious', [SessionController::class, 'suspicious']);           // Flagged sessions
     Route::put('/ip-rules', [SessionController::class, 'updateIPRules']);          // IP allowlist/denylist
     Route::post('/users/{userId}/revoke-all', [SessionController::class, 'revokeAll']); // Logout all sessions for user
@@ -625,6 +636,7 @@ Route::prefix('sessions')->group(function () {
                 Route::get('/{id}/sla',               [TicketController::class, 'sla'])->whereNumber('id');
                 Route::post('/{id}/messages',         [TicketController::class, 'addMessage'])->whereNumber('id');
                 Route::post('/{id}/escalate',         [TicketController::class, 'escalate'])->whereNumber('id');
+                Route::post('/{id}/reassign',         [TicketController::class, 'reassign'])->whereNumber('id');
                 Route::post('/{id}/resolve',          [TicketController::class, 'resolve'])->whereNumber('id');
             });
 

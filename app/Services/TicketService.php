@@ -95,6 +95,63 @@ class TicketService
         });
     }
 
+    /**
+     * Reassign a single ticket to another admin user (Screen 57 action).
+     *
+     * Transfers ownership, stamps the reassignment time and actor, records an
+     * internal note on the thread, and writes an audit-log entry capturing the
+     * from/to assignees so the transfer is fully traceable.
+     */
+    public function reassign(Ticket $ticket, User $newAssignee, User $actor, ?string $note = null): Ticket
+    {
+        return DB::transaction(function () use ($ticket, $newAssignee, $actor, $note) {
+            $previousAssigneeId   = $ticket->assigned_to;
+            $previousAssigneeName = $ticket->assignee?->name;
+
+            $ticket->update([
+                'assigned_to'   => $newAssignee->id,
+                'reassigned_at' => now(),
+                'reassigned_by' => $actor->id,
+                // Move an untouched "open" ticket into active work once it has an owner.
+                'status'        => $ticket->status === 'open' ? 'in_progress' : $ticket->status,
+            ]);
+
+            $historyLine = sprintf(
+                'Ticket reassigned from %s to %s by %s.%s',
+                $previousAssigneeName ? "{$previousAssigneeName} (#{$previousAssigneeId})" : 'Unassigned',
+                "{$newAssignee->name} (#{$newAssignee->id})",
+                $actor->name,
+                $note ? " Note: {$note}" : ''
+            );
+
+            TicketMessage::create([
+                'ticket_id'   => $ticket->id,
+                'visibility'  => 'internal',
+                'author_type' => 'system',
+                'author_id'   => $actor->id,
+                'author_name' => $actor->name ?? 'System',
+                'body'        => $historyLine,
+            ]);
+
+            activity()
+                ->withProperties([
+                    'ticket_id'      => $ticket->id,
+                    'ticket_number'  => $ticket->ticket_number,
+                    'from_user_id'   => $previousAssigneeId,
+                    'to_user_id'     => $newAssignee->id,
+                    'reassigned_by'  => $actor->id,
+                    'note'           => $note,
+                ])
+                ->log("Ticket {$ticket->ticket_number} reassigned to user #{$newAssignee->id}");
+
+            return $ticket->fresh([
+                'assignee:id,name,email',
+                'reassignedByUser:id,name,email',
+                'messages',
+            ]);
+        });
+    }
+
     private function generateTicketNumber(): string
     {
         $year = now()->format('Y');

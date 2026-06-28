@@ -23,6 +23,31 @@ class SessionService
     }
 
     /**
+     * Force-logout every active session currently flagged as suspicious,
+     * platform-wide (across all users). Returns the number revoked.
+     */
+    public function revokeAllSuspicious(?int $revokedByAdminId = null): int
+    {
+        return DB::transaction(function () use ($revokedByAdminId) {
+            $revoked = AdminSession::query()
+                ->where('is_active', true)
+                ->where('is_suspicious', true)
+                ->update([
+                    'is_active'     => false,
+                    'logged_out_at' => now(),
+                ]);
+
+            if ($revoked > 0) {
+                Log::warning(
+                    "Revoke-all-suspicious: {$revoked} suspicious session(s) revoked by admin " . ($revokedByAdminId ?? 'unknown')
+                );
+            }
+
+            return $revoked;
+        });
+    }
+
+    /**
      * @param  array<int>  $sessionIds
      * @return array{revoked_count: int, failed_count: int}
      */

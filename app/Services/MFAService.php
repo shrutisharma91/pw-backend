@@ -24,6 +24,8 @@ class MFAService
     private int $resendCooldown = 60;    // Min seconds between resend requests
     private string $cachePrefix = 'mfa_otp_';
     private string $devEmail = 'finzwork10@gmail.com';
+    private string $setupCachePrefix = 'mfa_setup_'; // pending TOTP reconfiguration secret
+    private int $setupTTL = 600;         // Pending TOTP setup valid for 10 minutes
 
     // ------------------------------------------------------------------
     // Generate and send OTP
@@ -211,6 +213,123 @@ class MFAService
             );
         }
         return $codes;
+    }
+
+    // ------------------------------------------------------------------
+    // Profile Settings — MFA reconfiguration & recovery codes
+    // ------------------------------------------------------------------
+
+    /**
+     * Begin a TOTP (authenticator app) reconfiguration.
+     * The secret is held in cache (not persisted) until the user proves
+     * they can generate a valid code via confirmTotpSetup().
+     *
+     * @return array{secret: string, otpauth_uri: string, expires_in: int}
+     */
+    public function beginTotpSetup(User $user): array
+    {
+        $secret = $this->generateSecretKey();
+
+        Cache::put($this->setupCachePrefix . $user->id, $secret, $this->setupTTL);
+
+        return [
+            'secret'      => $secret,
+            'otpauth_uri' => $this->buildOtpAuthUri($user, $secret),
+            'expires_in'  => $this->setupTTL,
+        ];
+    }
+
+    /**
+     * Confirm a pending TOTP setup. On success TOTP becomes the active MFA
+     * channel and a fresh set of recovery codes is issued (shown once).
+     *
+     * @return array{success: bool, message?: string, code?: string, recovery_codes?: array<int, string>}
+     */
+    public function confirmTotpSetup(User $user, string $code): array
+    {
+        $secret = Cache::get($this->setupCachePrefix . $user->id);
+
+        if (! $secret) {
+            return [
+                'success' => false,
+                'message' => 'MFA setup session has expired. Please restart the setup.',
+                'code'    => 'setup_expired',
+            ];
+        }
+
+        if (! $this->verifyTOTPCode($secret, $code)) {
+            return [
+                'success' => false,
+                'message' => 'Invalid authenticator code. Please try again.',
+                'code'    => 'invalid_totp',
+            ];
+        }
+
+        $recoveryCodes = $this->generateRecoveryCodes();
+
+        $user->update([
+            'mfa_enabled'        => true,
+            'mfa_channel'        => 'totp',
+            'mfa_secret'         => $secret,
+            'mfa_recovery_codes' => $recoveryCodes,
+        ]);
+
+        Cache::forget($this->setupCachePrefix . $user->id);
+
+        return [
+            'success'        => true,
+            'recovery_codes' => $recoveryCodes,
+        ];
+    }
+
+    /**
+     * Switch the active MFA channel back to email OTP and drop any TOTP secret.
+     */
+    public function switchToEmailChannel(User $user): void
+    {
+        Cache::forget($this->setupCachePrefix . $user->id);
+
+        $user->update([
+            'mfa_channel' => 'email',
+            'mfa_secret'  => null,
+        ]);
+    }
+
+    /**
+     * Issue a fresh set of recovery codes, invalidating any previous ones.
+     *
+     * @return array<int, string>
+     */
+    public function regenerateRecoveryCodes(User $user): array
+    {
+        $codes = $this->generateRecoveryCodes();
+
+        $user->update(['mfa_recovery_codes' => $codes]);
+
+        return $codes;
+    }
+
+    public function recoveryCodesRemaining(User $user): int
+    {
+        return is_array($user->mfa_recovery_codes) ? count($user->mfa_recovery_codes) : 0;
+    }
+
+    /**
+     * Build an otpauth:// provisioning URI consumable by authenticator apps
+     * (Google Authenticator, Authy, etc.) and renderable as a QR code.
+     */
+    public function buildOtpAuthUri(User $user, string $secret): string
+    {
+        $issuer  = config('app.name', 'FinZ Admin');
+        $account = $user->email ?: ('user-' . $user->id);
+
+        return sprintf(
+            'otpauth://totp/%s:%s?secret=%s&issuer=%s&algorithm=SHA1&digits=6&period=30',
+            rawurlencode($issuer),
+            rawurlencode($account),
+            $secret,
+            rawurlencode($issuer)
+        );
     }
 
     private function base32Decode(string $base32): string
