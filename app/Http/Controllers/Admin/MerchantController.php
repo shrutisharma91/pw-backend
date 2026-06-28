@@ -452,4 +452,64 @@ class MerchantController extends Controller
         
         return response()->json(['message' => 'Merchant reactivated successfully', 'merchant' => $merchant]);
     }
+
+    #[OA\Get(
+        path: "/api/v1/admin/merchants/{id}/documents/{document_id}/view",
+        summary: "Document Viewer Panel",
+        security: [["sanctum" => []]],
+        tags: ["Merchant"],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer")),
+            new OA\Parameter(name: "document_id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
+    public function documentViewer($id, $document_id)
+    {
+        $document = \Illuminate\Support\Facades\DB::table('documents')
+            ->where('entity_type', 'merchant')
+            ->where('entity_id', $id)
+            ->where('id', $document_id)
+            ->first();
+            
+        if (!$document) {
+            return response()->json(['message' => 'Document not found'], 404);
+        }
+
+        return response()->json([
+            'document' => $document,
+            'viewer_url' => 'https://mock-viewer.finz.com/view/' . $document_id,
+            'status' => 'ready'
+        ]);
+    }
+
+    #[OA\Post(
+        path: "/api/v1/admin/merchants/{id}/ephemeral-notes",
+        summary: "Internal Notes Thread (browser-only, not persisted)",
+        security: [["sanctum" => []]],
+        tags: ["Merchant"],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "note", type: "string", example: "Draft note.")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
+    public function ephemeralNotes(Request $request, $id)
+    {
+        return response()->json([
+            'message' => 'Note received but not persisted.',
+            'echo' => $request->note
+        ]);
+    }
 }

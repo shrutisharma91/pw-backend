@@ -115,4 +115,47 @@ class StoreController extends Controller
             'Content-Disposition' => 'attachment; filename="stores.csv"',
         ]);
     }
+
+    #[OA\Get(
+        path: "/api/v1/admin/stores/{id}/linked-products",
+        summary: "Linked Products / Inventory Snapshot",
+        security: [["sanctum" => []]],
+        tags: ["Store"],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
+    public function linkedProducts($id)
+    {
+        $store = Store::with(['products' => function($q) {
+            $q->withPivot('stock_quantity');
+        }])->findOrFail($id);
+
+        return response()->json([
+            'store_id' => $store->id,
+            'linked_products' => $store->products,
+            'inventory_snapshot_date' => now()->toIso8601String()
+        ]);
+    }
+
+    #[OA\Get(
+        path: "/api/v1/admin/stores/{id}/loan-applications",
+        summary: "Loan Applications Table for Store",
+        security: [["sanctum" => []]],
+        tags: ["Store"],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
+    public function loanApplications($id)
+    {
+        $loans = \App\Models\LoanApplication::where('store_id', $id)->paginate(15);
+        return response()->json($loans);
+    }
 }

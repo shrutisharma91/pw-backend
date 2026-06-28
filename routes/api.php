@@ -225,8 +225,10 @@ Route::prefix('sessions')->group(function () {
             Route::get('/{id}/agreements/{agreement_id}/preview', [MerchantAgreementController::class, 'preview']); // Screen 17
             Route::get('/{id}/agreements/{agreement_id}/esign-status', [MerchantAgreementController::class, 'esignStatus']); // Screen 17
             Route::get('/{id}/documents', [MerchantController::class, 'documents']);
+            Route::get('/{id}/documents/{document_id}/view', [MerchantController::class, 'documentViewer']);
             Route::get('/{id}/notes', [MerchantController::class, 'notes']);
             Route::post('/{id}/notes', [MerchantController::class, 'addNote']);
+            Route::post('/{id}/ephemeral-notes', [MerchantController::class, 'ephemeralNotes']);
             Route::post('/{id}/approve-changes', [MerchantController::class, 'approveChanges']);
             Route::post('/{id}/reactivate', [MerchantController::class, 'reactivate']);
         });
@@ -240,11 +242,14 @@ Route::prefix('sessions')->group(function () {
             Route::get('/', [StoreController::class, 'index']);               // Screen 20
             Route::get('/export', [StoreController::class, 'export']);        // Screen 20
             Route::get('/{id}', [StoreController::class, 'show']);            // Screen 21
+            Route::get('/{id}/linked-products', [StoreController::class, 'linkedProducts']);
+            Route::get('/{id}/loan-applications', [StoreController::class, 'loanApplications']);
             Route::post('/{id}/deactivate', [StoreController::class, 'deactivate']); // Screen 21
         });
 
         Route::prefix('products')->group(function () {
             Route::get('/', [ProductController::class, 'index']);             // Screen 22
+            Route::post('/bulk-import', [ProductController::class, 'bulkImport']); // Bulk Import for Products
             Route::post('/detect-duplicates', [ProductController::class, 'detectDuplicates']); // Screen 22
             Route::post('/bulk-financing-toggle', [ProductController::class, 'bulkFinancingToggle']); // Screen 22
             Route::post('/{id}/flag', [ProductController::class, 'flag']);    // Screen 22
@@ -308,6 +313,7 @@ Route::prefix('sessions')->group(function () {
         // ----- Phase 7: Pricing & Offers -----
         Route::prefix('pricing')->group(function () {
             // Screen 29: EMI Master Configuration
+            Route::post('/emi-types/{id}/toggle', [EmiTypeController::class, 'toggle']);
             Route::apiResource('emi-types', EmiTypeController::class);
             
             // Screen 30: Tenure & Interest Slabs

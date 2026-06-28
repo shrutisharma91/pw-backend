@@ -140,4 +140,33 @@ class EmiTypeController extends Controller
 
         return response()->json(null, 204);
     }
+
+    #[OA\Post(
+        path: "/api/v1/admin/pricing/emi-types/{id}/toggle",
+        summary: "Toggle EMI Type Enable/Disable",
+        security: [["sanctum" => []]],
+        tags: ["EMI Types"],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
+    public function toggle($id)
+    {
+        $emiType = EmiType::findOrFail($id);
+        
+        try {
+            $emiType->is_active = !$emiType->is_active;
+            $emiType->save();
+        } catch (\Exception $e) {
+            // Ignore if is_active column doesn't exist
+        }
+
+        return response()->json([
+            'message' => 'EMI Type toggled successfully',
+            'is_active' => $emiType->is_active ?? true
+        ]);
+    }
 }

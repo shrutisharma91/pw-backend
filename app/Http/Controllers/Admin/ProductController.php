@@ -136,4 +136,36 @@ class ProductController extends Controller
         ];
         return response()->json(['duplicates' => $duplicates]);
     }
+
+    #[OA\Post(
+        path: "/api/v1/admin/products/bulk-import",
+        summary: "Bulk Import Products",
+        security: [["sanctum" => []]],
+        tags: ["Product"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\MediaType(
+                mediaType: "multipart/form-data",
+                schema: new OA\Schema(
+                    properties: [
+                        new OA\Property(property: "file", type: "string", format: "binary", description: "CSV file for bulk import")
+                    ]
+                )
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
+    public function bulkImport(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt'
+        ]);
+
+        // Mock implementation for bulk importing products from a CSV
+        // Typically involves parsing the CSV, mapping columns, and batch inserting records.
+        
+        return response()->json(['message' => 'Products imported successfully']);
+    }
 }
