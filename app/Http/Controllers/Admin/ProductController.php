@@ -29,7 +29,9 @@ class ProductController extends Controller
         if ($request->has('category_id')) $products->where('category_id', $request->category_id);
         if ($request->has('brand_id')) $products->where('brand_id', $request->brand_id);
         
-        return response()->json($products->paginate(15));
+        // Use a massive number to effectively return "no limit" while preserving the expected frontend JSON structure
+        $perPage = $request->input('per_page', 1000000);
+        return response()->json($products->paginate($perPage));
     }
 
     #[OA\Post(
