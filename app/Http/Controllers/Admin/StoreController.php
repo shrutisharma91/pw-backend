@@ -29,6 +29,7 @@ class StoreController extends Controller
         
         if ($request->has('status')) $stores->where('status', $request->status);
         if ($request->has('region')) $stores->where('region', $request->region);
+        if ($request->has('merchant_id')) $stores->where('merchant_id', $request->merchant_id);
         
         return response()->json($stores->paginate(15));
     }

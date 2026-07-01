@@ -200,8 +200,8 @@ class ProductController extends Controller
 
             $products[] = [
                 'merchant_id' => $rowMerchantId,
-                'category_id' => $data['category_id'] ?? null,
-                'brand_id' => $data['brand_id'] ?? null,
+                'category_id' => !empty($data['category_id']) ? $data['category_id'] : null,
+                'brand_id' => !empty($data['brand_id']) ? $data['brand_id'] : null,
                 'name' => $data['name'] ?? 'Unknown Product',
                 'sku' => $data['sku'] ?? null,
                 'price' => $data['price'] ?? 0,

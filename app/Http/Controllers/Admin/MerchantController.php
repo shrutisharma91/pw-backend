@@ -35,6 +35,10 @@ class MerchantController extends Controller
         if ($request->has('sales_exec_id')) $merchants->where('sales_exec_id', $request->sales_exec_id);
         if ($request->has('signup_date')) $merchants->whereDate('created_at', clone new \Carbon\Carbon($request->signup_date));
         
+        if ($request->has('nopaginate')) {
+            return response()->json($merchants->get());
+        }
+        
         return response()->json($merchants->paginate(15));
     }
 
@@ -54,6 +58,43 @@ class MerchantController extends Controller
     {
         $merchant = Merchant::findOrFail($id);
         return response()->json($merchant);
+    }
+
+    #[OA\Post(
+        path: "/api/v1/admin/merchants",
+        summary: "Create Merchant",
+        security: [["sanctum" => []]],
+        tags: ["Merchant"],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                properties: [
+                    new OA\Property(property: "business_name", type: "string", example: "Acme Corp"),
+                    new OA\Property(property: "region", type: "string", example: "North"),
+                    new OA\Property(property: "category", type: "string", example: "Electronics")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 201, description: "Merchant Created")
+        ]
+    )]
+    public function store(Request $request)
+    {
+        $request->validate([
+            'business_name' => 'required|string|max:255',
+            'region' => 'nullable|string',
+            'category' => 'nullable|string',
+        ]);
+
+        $merchant = Merchant::create([
+            'business_name' => $request->business_name,
+            'region' => $request->region,
+            'category' => $request->category,
+            'status' => 'Draft'
+        ]);
+
+        return response()->json(['message' => 'Merchant created successfully', 'merchant' => $merchant], 201);
     }
 
     #[OA\Post(
@@ -307,8 +348,13 @@ class MerchantController extends Controller
     public function sendNotice(Request $request, $id)
     {
         $request->validate(['notice_text' => 'required|string']);
+        
+        $merchant = Merchant::findOrFail($id);
+        $merchant->status = 'Notice Sent';
+        $merchant->save();
+        
         // Mock Implementation: create an entry in db if we had a Notice table
-        return response()->json(['message' => 'Notice sent successfully']);
+        return response()->json(['message' => 'Notice sent successfully', 'merchant' => $merchant]);
     }
 
     #[OA\Post(
@@ -334,8 +380,13 @@ class MerchantController extends Controller
     public function escalateToRisk(Request $request, $id)
     {
         $request->validate(['escalation_reason' => 'required|string']);
+        
+        $merchant = Merchant::findOrFail($id);
+        $merchant->status = 'Escalated';
+        $merchant->save();
+        
         // Mock Implementation
-        return response()->json(['message' => 'Escalated to Risk team']);
+        return response()->json(['message' => 'Escalated to Risk team', 'merchant' => $merchant]);
     }
 
     #[OA\Get(

@@ -106,4 +106,24 @@ class LenderRuleController extends Controller
         
         return response()->json(['message' => 'Rule archived', 'rule' => $rule]);
     }
+    #[OA\Post(
+        path: "/api/v1/admin/lender-rules/{id}/toggle",
+        summary: "Toggle Lender Rule Status",
+        security: [["sanctum" => []]],
+        tags: ["LenderRule"],
+        parameters: [
+            new OA\Parameter(name: "id", in: "path", required: true, schema: new OA\Schema(type: "integer"))
+        ],
+        responses: [
+            new OA\Response(response: 200, description: "Success")
+        ]
+    )]
+    public function toggle($id)
+    {
+        $rule = LenderRule::findOrFail($id);
+        $rule->status = $rule->status === 'active' ? 'inactive' : 'active';
+        $rule->save();
+        
+        return response()->json(['message' => 'Rule toggled', 'rule' => $rule]);
+    }
 }

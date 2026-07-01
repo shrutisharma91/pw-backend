@@ -218,6 +218,7 @@ Route::prefix('sessions')->group(function () {
         // ----- Phase 4: Merchant Lifecycle -----
         Route::prefix('merchants')->group(function () {
             Route::get('/', [MerchantController::class, 'index']);               // Screen 14: Merchant Directory
+            Route::post('/', [MerchantController::class, 'store']);              // Create Merchant
             Route::post('/bulk-approve', [MerchantController::class, 'bulkApprove']);
             Route::post('/bulk-reject', [MerchantController::class, 'bulkReject']);
             Route::get('/export', [MerchantController::class, 'export']);
@@ -311,6 +312,7 @@ Route::prefix('sessions')->group(function () {
             Route::post('/', [LenderRuleController::class, 'store']);         // Screen 27
             Route::put('/{id}', [LenderRuleController::class, 'update']);     // Screen 27
             Route::post('/{id}/archive', [LenderRuleController::class, 'archive']); // Screen 27
+            Route::post('/{id}/toggle', [LenderRuleController::class, 'toggle']); // Screen 27
         });
 
         Route::prefix('lender-sla')->group(function () {

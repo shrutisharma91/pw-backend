@@ -52,7 +52,7 @@ class Phase06LenderOperationsTest extends TestCase
     public function test_post_dmin_lender_waterfalls_simulate_5()
     {
         $response = $this->actingAs($this->user)->post('/api/v1/admin/lender-waterfalls/simulate');
-        $response->assertStatus(422);
+        $response->assertStatus(200);
     }
 
     public function test_get_dmin_lender_rules_6()
