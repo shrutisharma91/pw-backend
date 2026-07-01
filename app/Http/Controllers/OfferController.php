@@ -23,10 +23,12 @@ class OfferController extends Controller
     )]
     public function index(Request $request)
     {
-        $query = Offer::query();
+        $query = Offer::with('merchant');
         
         if ($request->has('status')) {
             $query->where('status', $request->status);
+        } else {
+            $query->whereIn('status', ['Active', 'Approved']);
         }
 
         if ($request->has('merchant_id')) {
@@ -66,31 +68,34 @@ class OfferController extends Controller
     )]
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'title' => 'required|string',
-            'description' => 'nullable|string',
-            'offer_type' => 'required|in:flat,percentage,cashback,coupon',
-            'discount_value' => 'required|numeric',
-            'scope_type' => 'required|in:platform,merchant_tier,category,lender,tenure,geo',
-            'scope_value' => 'nullable|string',
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'recurrence' => 'nullable|string',
-            'blackout_dates' => 'nullable|array',
-            'budget_cap' => 'nullable|numeric',
-            'auto_pause' => 'boolean',
-            'is_platform_offer' => 'boolean',
-            'merchant_id' => 'nullable|exists:merchants,id',
-            'coupon_code' => 'nullable|string',
-            'festival_template' => 'nullable|string'
-        ]);
-
-        $validated['status'] = 'Pending';
-        if ($validated['is_platform_offer'] ?? false) {
-            $validated['status'] = 'Active'; // Platform offers might skip the merchant approval queue
+        \Log::info('Offer store request payload:', $request->all());
+        try {
+            $validated = $request->validate([
+                'title' => 'required|string',
+                'description' => 'nullable|string',
+                'offer_type' => 'required|in:flat,percentage,cashback,coupon',
+                'discount_value' => 'required|numeric',
+                'scope_type' => 'required|in:platform,merchant_tier,category,lender,tenure,geo',
+                'scope_value' => 'nullable|string',
+                'start_date' => 'nullable|date',
+                'end_date' => 'nullable|date|after_or_equal:start_date',
+                'recurrence' => 'nullable|string',
+                'blackout_dates' => 'nullable|array',
+                'budget_cap' => 'nullable|numeric',
+                'auto_pause' => 'boolean',
+                'is_platform_offer' => 'boolean',
+                'merchant_id' => 'nullable|exists:merchants,id',
+                'coupon_code' => 'nullable|string',
+                'festival_template' => 'nullable|string'
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('Offer validation failed', $e->errors());
+            throw $e;
         }
 
+        $validated['status'] = 'Pending';
         $offer = Offer::create($validated);
+        $offer->load('merchant');
 
         return response()->json($offer, 201);
     }
@@ -109,7 +114,7 @@ class OfferController extends Controller
     )]
     public function show($id)
     {
-        return response()->json(Offer::findOrFail($id));
+        return response()->json(Offer::with('merchant')->findOrFail($id));
     }
 
     #[OA\Put(
@@ -164,6 +169,7 @@ class OfferController extends Controller
         ]);
 
         $offer->update($validated);
+        $offer->load('merchant');
 
         return response()->json($offer);
     }
@@ -254,7 +260,7 @@ class OfferController extends Controller
     )]
     public function pending()
     {
-        $offers = Offer::where('status', 'Pending')->get();
+        $offers = Offer::with('merchant')->where('status', 'Pending')->get();
         return response()->json($offers);
     }
 }

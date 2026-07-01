@@ -129,7 +129,7 @@ class BusinessAnalyticsController extends Controller
     {
         return Loan::where('status', 'disbursed')
             ->whereBetween('disbursed_at', [$start, $end])
-            ->selectRaw('disbursed_at::date as date, COUNT(*) as count, SUM(loan_amount) as volume')
+            ->selectRaw('DATE(disbursed_at) as date, COUNT(*) as count, SUM(loan_amount) as volume')
             ->groupBy('date')
             ->orderBy('date')
             ->get()
@@ -165,6 +165,21 @@ class BusinessAnalyticsController extends Controller
 
     private function getCohortRetention(): array
     {
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return DB::select("
+                SELECT
+                    strftime('%Y-%m', created_at) as cohort_month,
+                    COUNT(*) as cohort_size,
+                    SUM(CASE WHEN created_at <= date('now', '-3 months') AND LOWER(status) = 'approved' THEN 1 ELSE 0 END) as retained_3m,
+                    SUM(CASE WHEN created_at <= date('now', '-6 months') AND LOWER(status) = 'approved' THEN 1 ELSE 0 END) as retained_6m,
+                    SUM(CASE WHEN created_at <= date('now', '-9 months') AND LOWER(status) = 'approved' THEN 1 ELSE 0 END) as retained_9m
+                FROM merchants
+                GROUP BY cohort_month
+                ORDER BY cohort_month DESC
+                LIMIT 12
+            ");
+        }
+
         // Monthly cohort of merchant signups and their 3/6/9 month retention
         return DB::select("
             SELECT

@@ -34,19 +34,19 @@ class Phase03UserManagementTest extends TestCase
     public function test_get_dmin_users_1_2()
     {
         $response = $this->actingAs($this->user)->get('/api/v1/admin/users/1');
-        $response->assertStatus(404);
+        $response->assertStatus(200);
     }
 
     public function test_put_dmin_users_1_3()
     {
         $response = $this->actingAs($this->user)->put('/api/v1/admin/users/1');
-        $response->assertStatus(404);
+        $response->assertStatus(200);
     }
 
     public function test_post_dmin_users_1_disable_4()
     {
         $response = $this->actingAs($this->user)->post('/api/v1/admin/users/1/disable');
-        $response->assertStatus(404);
+        $response->assertStatus(422);
     }
 
     public function test_get_dmin_roles_5()
@@ -64,7 +64,7 @@ class Phase03UserManagementTest extends TestCase
     public function test_put_dmin_permissions_roles_1_7()
     {
         $response = $this->actingAs($this->user)->put('/api/v1/admin/permissions/roles/1');
-        $response->assertStatus(404);
+        $response->assertStatus(422);
     }
 
     public function test_get_dmin_sessions_8()

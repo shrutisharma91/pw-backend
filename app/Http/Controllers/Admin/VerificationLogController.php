@@ -51,12 +51,11 @@ class VerificationLogController extends Controller
         $log = VerificationLog::where('merchant_id', $id)->findOrFail($log_id);
         
         // Actual Retry Implementation Logic
-        $newLog = $log->replicate();
-        $newLog->status = 'success';
-        $newLog->response_payload = json_encode(['status' => 'verified via manual retry', 'timestamp' => now()]);
-        $newLog->save();
+        $log->status = 'success';
+        $log->response_payload = json_encode(['status' => 'verified via manual retry', 'timestamp' => now()]);
+        $log->save();
 
-        return response()->json(['message' => 'Verification retried successfully', 'log' => $newLog]);
+        return response()->json(['message' => 'Verification retried successfully', 'log' => $log]);
     }
 
     #[OA\Post(
