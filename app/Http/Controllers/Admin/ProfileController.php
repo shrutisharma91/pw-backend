@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exceptions\CloudinaryUploadException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Profile\ChangePasswordRequest;
 use App\Http\Requests\Profile\ConfirmMfaSetupRequest;
@@ -73,6 +74,7 @@ class ProfileController extends Controller
                                 new OA\Property(property: 'in_app', type: 'boolean', example: true),
                             ]
                         ),
+                        new OA\Property(property: 'profile_image', type: 'string', format: 'binary'),
                         new OA\Property(property: 'profile_photo', type: 'string', format: 'binary'),
                     ]
                 )
@@ -111,17 +113,26 @@ class ProfileController extends Controller
     )]
     public function update(UpdateProfileRequest $request): JsonResponse
     {
-        $user = $this->profileService->updateProfile(
-            $request->user(),
-            $request->validated(),
-            $request->file('profile_photo')
-        );
+        try {
+            $profileImage = $request->file('profile_image') ?? $request->file('profile_photo');
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Profile updated successfully.',
-            'data'    => new ProfileResource($user),
-        ]);
+            $user = $this->profileService->updateProfile(
+                $request->user(),
+                $request->validated(),
+                $profileImage
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Profile updated successfully.',
+                'data'    => new ProfileResource($user),
+            ]);
+        } catch (CloudinaryUploadException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
     }
 
     #[OA\Post(

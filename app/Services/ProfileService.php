@@ -17,6 +17,10 @@ class ProfileService
         'whatsapp' => false,
     ];
 
+    public function __construct(
+        private CloudinaryService $cloudinaryService,
+    ) {}
+
     public function updateProfile(User $user, array $data, ?UploadedFile $profilePhoto = null): User
     {
         $updateData = [];
@@ -37,11 +41,12 @@ class ProfileService
         }
 
         if ($profilePhoto) {
-            if ($user->profile_photo) {
-                Storage::disk('public')->delete($user->profile_photo);
-            }
+            $this->deleteExistingProfilePhoto($user);
 
-            $updateData['profile_photo'] = $profilePhoto->store('profile-photos', 'public');
+            $upload = $this->cloudinaryService->uploadProfileImage($profilePhoto);
+
+            $updateData['profile_photo'] = $upload['secure_url'];
+            $updateData['public_id']     = $upload['public_id'];
         }
 
         if ($updateData !== []) {
@@ -83,6 +88,19 @@ class ProfileService
             return JWTAuth::getPayload()->get('jti');
         } catch (\Throwable) {
             return null;
+        }
+    }
+
+    private function deleteExistingProfilePhoto(User $user): void
+    {
+        if ($user->public_id) {
+            $this->cloudinaryService->deleteByPublicId($user->public_id);
+
+            return;
+        }
+
+        if ($user->profile_photo && ! str_starts_with($user->profile_photo, 'http')) {
+            Storage::disk('public')->delete($user->profile_photo);
         }
     }
 }

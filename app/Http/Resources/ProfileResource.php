@@ -17,14 +17,15 @@ class ProfileResource extends JsonResource
             'whatsapp' => false,
         ];
 
+        $profileImageUrl = $this->resolveProfileImageUrl();
+
         return [
             'id'                       => $this->id,
             'name'                     => $this->name,
             'email'                    => $this->email,
             'mobile'                   => $this->mobile,
-            'profile_photo'            => $this->profile_photo
-                ? Storage::url($this->profile_photo)
-                : null,
+            'profile_image'            => $profileImageUrl,
+            'profile_photo'            => $profileImageUrl,
             'role'                     => $this->role,
             'roles'                    => $this->when(
                 method_exists($this->resource, 'getRoleNames'),
@@ -39,5 +40,18 @@ class ProfileResource extends JsonResource
             'last_login_at'            => $this->last_login_at,
             'password_changed_at'      => $this->password_changed_at,
         ];
+    }
+
+    private function resolveProfileImageUrl(): ?string
+    {
+        if (! $this->profile_photo) {
+            return null;
+        }
+
+        if (str_starts_with($this->profile_photo, 'http://') || str_starts_with($this->profile_photo, 'https://')) {
+            return $this->profile_photo;
+        }
+
+        return Storage::url($this->profile_photo);
     }
 }

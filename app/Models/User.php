@@ -37,6 +37,7 @@ class User extends Authenticatable implements JWTSubject
         'mobile',
         'password',
         'profile_photo',
+        'public_id',
         'role',                  // superadmin, merchant_admin, store_manager, etc.
         'mfa_enabled',           // boolean — is MFA turned on?
         'mfa_secret',            // TOTP secret key (encrypted)
