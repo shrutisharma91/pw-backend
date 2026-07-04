@@ -84,7 +84,7 @@ class FeatureFlagController extends Controller
         $flag = FeatureFlag::create([
             'name'           => $validated['name'],
             'key'            => $validated['key'],
-            'description'    => $validated['description'],
+            'description'    => $validated['description'] ?? null,
             'type'           => $validated['type'],
             'default_value'  => json_encode($validated['default_value']),
             'rollout_status' => 'off',
@@ -176,7 +176,8 @@ class FeatureFlagController extends Controller
             'variant_b_value'=> 'required',
             'traffic_split'  => 'required|integer|min:1|max:99',  // % going to variant B
             'metric'         => 'required|string|max:100',        // e.g. 'approval_rate', 'disbursal_volume'
-            'start_at'       => 'required|date|after_or_equal:now',
+            // Allow slight clock skew / request latency vs strict after_or_equal:now.
+            'start_at'       => 'required|date|after_or_equal:' . now()->subMinutes(2)->toDateTimeString(),
             'end_at'         => 'required|date|after:start_at',
         ]);
 
@@ -184,7 +185,13 @@ class FeatureFlagController extends Controller
         DB::table('ab_tests')->where('flag_id', $flag->id)->where('status', 'active')->update(['status' => 'ended', 'ended_at' => now()]);
 
         $startAt = Carbon::parse($validated['start_at']);
-        $status  = $startAt->lte(now()) ? 'active' : 'scheduled';
+        // Treat "now" / near-future starts as active so View Results works immediately.
+        if ($startAt->lte(now()->addMinutes(2))) {
+            $startAt = now();
+            $status  = 'active';
+        } else {
+            $status = 'scheduled';
+        }
 
         $test = DB::table('ab_tests')->insertGetId([
             'flag_id'         => $flag->id,
@@ -193,7 +200,7 @@ class FeatureFlagController extends Controller
             'variant_b_value' => json_encode($validated['variant_b_value']),
             'traffic_split'   => $validated['traffic_split'],
             'metric'          => $validated['metric'],
-            'start_at'        => $validated['start_at'],
+            'start_at'        => $startAt,
             'end_at'          => $validated['end_at'],
             'status'          => $status,
             'created_by'      => auth()->id(),
@@ -225,8 +232,7 @@ class FeatureFlagController extends Controller
 
         $test = DB::table('ab_tests')
             ->where('flag_id', $flag->id)
-            ->where('status', 'active')
-            ->where('start_at', '<=', now())
+            ->whereIn('status', ['active', 'scheduled'])
             ->where('end_at', '>', now())
             ->orderByDesc('id')
             ->first();
@@ -244,9 +250,12 @@ class FeatureFlagController extends Controller
         return response()->json([
             'success' => true,
             'data'    => [
-                'test'       => $test,
-                'results'    => $results,
+                'test'           => $test,
+                'results'        => $results,
                 'is_significant' => $this->isStatisticallySignificant($results),
+                'message'        => $results->isEmpty()
+                    ? 'A/B test is running, but no exposure events have been recorded yet.'
+                    : null,
             ],
         ]);
     }

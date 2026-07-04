@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ProfileResource;
 use App\Models\User;
 use App\Services\MFAService;
 use Illuminate\Http\Request;
@@ -78,15 +79,9 @@ class MFAController extends Controller
             'access_token' => JWTAuth::getToken()->get(),
             'token_type'   => 'bearer',
             'expires_in'   => config('jwt.ttl') * 60,
-            'user' => [
-                'id'       => $user->id,
-                'name'     => $user->name,
-                'email'    => $user->email,
-                'role'     => $user->role,
-                'theme'    => $user->theme,
-                'timezone' => $user->timezone,
-                'photo'    => $user->profile_photo,
-            ],
+            // Full profile (incl. resolved profile image URL) so the topbar
+            // avatar is available immediately after login.
+            'user'         => (new ProfileResource($user))->resolve(),
         ]);
 
         if ($request->boolean('remember_device')) {

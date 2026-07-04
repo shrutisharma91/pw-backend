@@ -85,8 +85,9 @@ class WorkflowBuilderController extends Controller
             'workflow_type'  => 'required|string|max:100',
             'description'    => 'nullable|string|max:500',
             'canvas'         => 'required|array',           // nodes and edges from frontend
-            'canvas.nodes'   => 'required|array',
-            'canvas.edges'   => 'required|array',
+            // `present` allows empty arrays; Laravel `required` rejects [].
+            'canvas.nodes'   => 'present|array|min:1',
+            'canvas.edges'   => 'present|array|min:1',
         ]);
 
         $this->validateCanvas($validated['canvas']);
@@ -95,7 +96,7 @@ class WorkflowBuilderController extends Controller
             $wf = Workflow::create([
                 'name'          => $validated['name'],
                 'workflow_type' => $validated['workflow_type'],
-                'description'   => $validated['description'],
+                'description'   => $validated['description'] ?? null,
                 'status'        => 'draft',
                 'created_by'    => auth()->id(),
             ]);
@@ -129,8 +130,8 @@ class WorkflowBuilderController extends Controller
             'name'        => 'sometimes|string|max:255',
             'description' => 'nullable|string|max:500',
             'canvas'      => 'required|array',
-            'canvas.nodes'=> 'required|array',
-            'canvas.edges'=> 'required|array',
+            'canvas.nodes'=> 'present|array|min:1',
+            'canvas.edges'=> 'present|array|min:1',
         ]);
 
         $this->validateCanvas($validated['canvas']);

@@ -92,7 +92,8 @@ class NotificationTemplateController extends Controller
                 'template_key'   => $validated['template_key'],
                 'channel'        => $validated['channel'],
                 'subject'        => $validated['subject'] ?? null,
-                'variables'      => json_encode($validated['variables'] ?? []),
+                // Model casts `variables` to array — pass the array directly.
+                'variables'      => $validated['variables'] ?? [],
                 'sender_id'      => $validated['sender_id'] ?? null,
                 'dlt_template_id'=> $validated['dlt_template_id'] ?? null,
                 'language'       => $validated['language'] ?? 'en',
