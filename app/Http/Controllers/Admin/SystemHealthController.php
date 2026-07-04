@@ -64,9 +64,20 @@ class SystemHealthController extends Controller
     // ------------------------------------------------------------------
     public function queueDepth()
     {
+        $queue = $this->getQueueStatus();
+
         return response()->json([
             'success' => true,
-            'queue'   => $this->getQueueStatus(),
+            'queue'   => $queue,
+            'queues'  => [
+                [
+                    'name'    => $queue['driver'] ?? 'default',
+                    'queue'   => 'default',
+                    'pending' => $queue['pending'],
+                    'failed'  => $queue['failed'],
+                    'retried' => $queue['retried'],
+                ],
+            ],
         ]);
     }
 

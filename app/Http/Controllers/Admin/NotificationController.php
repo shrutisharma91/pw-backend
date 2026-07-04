@@ -76,8 +76,8 @@ class NotificationController extends Controller
             $query->where('is_read', false);
         }
 
-        // Sort newest first, critical priority on top
-        $query->orderByRaw("FIELD(priority, 'critical', 'high', 'medium', 'info')")
+        // Sort newest first, critical priority on top (CASE works on PostgreSQL + MySQL)
+        $query->orderByRaw("CASE priority WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'info' THEN 4 ELSE 5 END")
               ->orderBy('created_at', 'desc');
 
         // Paginate — 20 per page

@@ -3,10 +3,16 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Disbursal;
+use App\Models\FraudAlert;
+use App\Models\Lender;
+use App\Models\LoanApplication;
+use App\Models\Merchant;
+use App\Models\Offer;
+use App\Models\Store;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Cache;
 
 /*
 |--------------------------------------------------------------------------
@@ -18,119 +24,194 @@ use Illuminate\Support\Facades\Cache;
 |   GET /api/v1/admin/dashboard            → main KPIs + charts
 |   GET /api/v1/admin/dashboard/live-stream → recent loan applications
 |   GET /api/v1/admin/dashboard/action-tray → pending approvals, fraud flags
-|
-| Note: Since merchants/loans/lenders tables don't exist yet,
-| these return realistic dummy data for now.
-| Replace DB::table() calls with real models as other phases are built.
 */
 
 class DashboardController extends Controller
 {
-    // ------------------------------------------------------------------
-    // GET /api/v1/admin/dashboard
-    // Screen 06 — Top KPIs + Revenue Chart + Recent Signups
-    // ------------------------------------------------------------------
-    public function index(Request $request)
-    {
-        // Period toggle: 7d / 30d / 90d (default 30d)
-        $period = $request->get('period', '30d');
-        $days   = match($period) {
-            '7d'  => 7,
-            '90d' => 90,
-            default => 30,
-        };
+  public function index(Request $request)
+  {
+    $period = $request->get('period', '30d');
+    $days   = match ($period) {
+      '7d'  => 7,
+      '90d' => 90,
+      default => 30,
+    };
 
-        $from = now()->subDays($days);
+    $kpis = [
+      'total_merchants'   => Merchant::count(),
+      'active_stores'     => Store::where('status', 'active')->count(),
+      'lenders_live'      => Lender::where('api_status', 'live')->count(),
+      'todays_disbursals' => (float) Disbursal::whereDate('created_at', today())
+        ->where('status', 'Success')
+        ->sum('amount'),
+      'total_users'       => User::where('is_active', true)->count(),
+      'pending_approvals' => Merchant::whereIn('status', ['Submitted', 'Under Review'])->count(),
+    ];
 
-        // -----------------------------------------------
-        // TOP KPIs
-        // Replace these with real DB queries as you build
-        // other modules (merchants, loans, lenders tables)
-        // -----------------------------------------------
-        $kpis = [
-            'total_merchants'   => DB::table('users')->where('role', 'merchant_admin')->count() ?? 0,
-            'active_stores'     => 0,   // replace: Store::where('is_active', true)->count()
-            'lenders_live'      => 0,   // replace: Lender::where('status', 'live')->count()
-            'todays_disbursals' => 0,   // replace: Loan::whereDate('disbursed_at', today())->sum('amount')
-            'total_users'       => User::where('is_active', true)->count(),
-            'pending_approvals' => 0,   // replace: Merchant::where('status', 'under_review')->count()
-        ];
+    $chartData = $this->buildChartData($days);
 
-        // -----------------------------------------------
-        // REVENUE TREND CHART DATA
-        // Returns array of {date, disbursals, revenue}
-        // -----------------------------------------------
-        $chartData = $this->buildChartData($days);
+    $labels = array_map(fn ($row) => substr($row['date'], 5), $chartData);
+    $disbursalSeries = array_map(fn ($row) => round(((float) $row['disbursals']) / 100000, 2), $chartData);
+    $revenueSeries = array_map(fn ($row) => round(((float) $row['revenue']) / 100000, 2), $chartData);
 
-        // -----------------------------------------------
-        // RECENT MERCHANT SIGNUPS
-        // -----------------------------------------------
-        $recentMerchants = User::where('role', 'merchant_admin')
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
-            ->get(['id', 'name', 'email', 'created_at', 'is_active']);
+    $recentSignups = Merchant::query()
+      ->orderByDesc('created_at')
+      ->limit(5)
+      ->get(['id', 'business_name', 'region', 'tier', 'status', 'created_at'])
+      ->map(fn (Merchant $m) => [
+        'id'         => $m->id,
+        'name'       => $m->business_name,
+        'merchant_name' => $m->business_name,
+        'region'     => $m->region ?? '—',
+        'plan'       => $m->tier ?? $m->status ?? '—',
+        'time'       => $m->created_at?->toIso8601String(),
+        'created_at' => $m->created_at?->toIso8601String(),
+      ])
+      ->values();
 
-        return response()->json([
-            'success'          => true,
-            'period'           => $period,
-            'kpis'             => $kpis,
-            'chart_data'       => $chartData,
-            'recent_merchants' => $recentMerchants,
-        ]);
+    $funnel = LoanApplication::query()
+      ->select('status', DB::raw('COUNT(*) as count'))
+      ->groupBy('status')
+      ->orderByDesc('count')
+      ->get()
+      ->map(fn ($row) => [
+        'label' => $row->status,
+        'stage' => $row->status,
+        'value' => (int) $row->count,
+        'count' => (int) $row->count,
+      ])
+      ->values();
+
+    return response()->json([
+      'success'          => true,
+      'period'           => $period,
+      'kpis'             => $kpis,
+      'chart_data'       => $chartData,
+      'trend'            => [
+        'labels'    => $labels,
+        'disbursal' => $disbursalSeries,
+        'values'    => $disbursalSeries,
+      ],
+      'revenue_trend'    => [
+        'labels' => $labels,
+        'values' => $revenueSeries,
+      ],
+      'recent_signups'   => $recentSignups,
+      'recent_merchants' => $recentSignups,
+      'funnel'           => $funnel,
+      'stage_pipeline'   => $funnel,
+    ]);
+  }
+
+  public function liveStream()
+  {
+    $applications = LoanApplication::query()
+      ->with(['merchant:id,business_name', 'store:id,name'])
+      ->latest()
+      ->limit(10)
+      ->get()
+      ->map(fn (LoanApplication $loan) => [
+        'id'             => 'LA-' . str_pad((string) $loan->id, 4, '0', STR_PAD_LEFT),
+        'application_id' => $loan->id,
+        'merchant'       => $loan->merchant?->business_name ?? '—',
+        'merchant_name'  => $loan->merchant?->business_name ?? '—',
+        'amount'         => '₹' . number_format((float) $loan->amount, 0),
+        'stage'          => $loan->status,
+        'status'         => $loan->status,
+        'time'           => $loan->created_at?->diffForHumans(),
+        'created_at'     => $loan->created_at?->toIso8601String(),
+      ])
+      ->values();
+
+    return response()->json([
+      'success' => true,
+      'data'    => $applications,
+      'items'   => $applications,
+    ]);
+  }
+
+  public function actionTray()
+  {
+    $pendingMerchants = Merchant::whereIn('status', ['Submitted', 'Under Review'])->count();
+    $slaBreaches      = LoanApplication::where('sla_breached', true)->count();
+    $fraudFlags       = FraudAlert::where('status', 'Open')->count();
+    $pendingOffers    = Offer::where('status', 'Pending')->count();
+
+    $items = [];
+
+    if ($pendingMerchants > 0) {
+      $items[] = [
+        'type'     => 'merchant',
+        'label'    => "{$pendingMerchants} merchant(s) pending approval",
+        'severity' => 'warning',
+        'link'     => '/merchants',
+      ];
     }
 
-    // ------------------------------------------------------------------
-    // GET /api/v1/admin/dashboard/live-stream
-    // Recent loan applications across all merchants
-    // ------------------------------------------------------------------
-    public function liveStream()
-    {
-        // Replace with real Loan model when Phase 2 backend is built
-        // Loan::with(['merchant', 'customer'])->latest()->limit(10)->get()
-
-        return response()->json([
-            'success' => true,
-            'data'    => [], // will be populated when loan tables exist
-            'message' => 'Loan tables not yet created. Will populate in Phase 2.',
-        ]);
+    if ($slaBreaches > 0) {
+      $items[] = [
+        'type'     => 'sla',
+        'label'    => "{$slaBreaches} loan application(s) breached SLA",
+        'severity' => 'danger',
+        'link'     => '/loan-application-monitor',
+      ];
     }
 
-    // ------------------------------------------------------------------
-    // GET /api/v1/admin/dashboard/action-tray
-    // Pending approvals, SLA breaches, fraud flags
-    // ------------------------------------------------------------------
-    public function actionTray()
-    {
-        $pendingApprovals = User::where('role', 'merchant_admin')
-            ->where('is_active', false)
-            ->count();
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'pending_merchant_approvals' => $pendingApprovals,
-                'sla_breaches'               => 0,  // replace when loan tables exist
-                'fraud_flags'                => 0,  // replace when risk tables exist
-                'pending_offers'             => 0,  // replace when offer tables exist
-            ],
-        ]);
+    if ($fraudFlags > 0) {
+      $items[] = [
+        'type'     => 'fraud',
+        'label'    => "{$fraudFlags} open fraud flag(s)",
+        'severity' => 'danger',
+        'link'     => '/fraud-alert-feed',
+      ];
     }
 
-    // ------------------------------------------------------------------
-    // Private: Build chart data for the trend chart
-    // ------------------------------------------------------------------
-    private function buildChartData(int $days): array
-    {
-        $data = [];
-        for ($i = $days - 1; $i >= 0; $i--) {
-            $date   = now()->subDays($i)->format('Y-m-d');
-            $data[] = [
-                'date'        => $date,
-                'disbursals'  => 0, // replace: Loan::whereDate('disbursed_at', $date)->sum('amount')
-                'revenue'     => 0, // replace: real revenue calculation
-                'applications'=> 0, // replace: Loan::whereDate('created_at', $date)->count()
-            ];
-        }
-        return $data;
+    if ($pendingOffers > 0) {
+      $items[] = [
+        'type'     => 'offer',
+        'label'    => "{$pendingOffers} offer(s) awaiting approval",
+        'severity' => 'info',
+        'link'     => '/pricing/offers/approval',
+      ];
     }
+
+    return response()->json([
+      'success' => true,
+      'items'   => $items,
+      'data'    => [
+        'pending_merchant_approvals' => $pendingMerchants,
+        'sla_breaches'               => $slaBreaches,
+        'fraud_flags'                => $fraudFlags,
+        'pending_offers'             => $pendingOffers,
+      ],
+    ]);
+  }
+
+  private function buildChartData(int $days): array
+  {
+    $data = [];
+
+    for ($i = $days - 1; $i >= 0; $i--) {
+      $date = now()->subDays($i);
+      $dateStr = $date->format('Y-m-d');
+
+      $disbursalAmount = (float) Disbursal::query()
+        ->where('status', 'Success')
+        ->whereDate('created_at', $dateStr)
+        ->sum('amount');
+
+      $applicationCount = LoanApplication::query()
+        ->whereDate('created_at', $dateStr)
+        ->count();
+
+      $data[] = [
+        'date'         => $dateStr,
+        'disbursals'   => $disbursalAmount,
+        'revenue'      => round($disbursalAmount * 0.02, 2),
+        'applications' => $applicationCount,
+      ];
+    }
+
+    return $data;
+  }
 }

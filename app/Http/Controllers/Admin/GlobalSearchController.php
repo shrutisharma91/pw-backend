@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\LoanApplication;
+use App\Models\Merchant;
 use App\Models\User;
 use App\Models\Ticket;
 use App\Models\AdminNotification;
@@ -61,7 +63,7 @@ class GlobalSearchController extends Controller
                         'label'    => $u->name,
                         'sublabel' => $u->email,
                         'badge'    => $u->role,
-                        'url'      => "/users/{$u->id}",
+                        'url'      => "/users/edit/{$u->id}",
                         'type'     => 'user',
                     ]),
                 ];
@@ -72,24 +74,60 @@ class GlobalSearchController extends Controller
         // MERCHANTS — when merchants table exists
         // -----------------------------------------------
         if ($categories === 'all' || str_contains($categories, 'merchants')) {
-            // Replace when merchant model is ready:
-            // $merchants = Merchant::where('business_name', 'like', "%{$query}%")->limit(5)->get();
-            $results['merchants'] = [
-                'label' => 'Merchants',
-                'count' => 0,
-                'items' => [], // populate when merchant tables exist
-            ];
+            $merchants = Merchant::query()
+                ->where(function ($q) use ($query) {
+                    $q->where('business_name', 'ILIKE', "%{$query}%")
+                        ->orWhere('gst_number', 'ILIKE', "%{$query}%")
+                        ->orWhere('region', 'ILIKE', "%{$query}%");
+                })
+                ->limit(5)
+                ->get(['id', 'business_name', 'region', 'status', 'tier']);
+
+            if ($merchants->isNotEmpty()) {
+                $results['merchants'] = [
+                    'label' => 'Merchants',
+                    'count' => $merchants->count(),
+                    'items' => $merchants->map(fn ($m) => [
+                        'id'       => $m->id,
+                        'label'    => $m->business_name,
+                        'sublabel' => $m->region ?? $m->status,
+                        'badge'    => $m->tier ?? $m->status,
+                        'url'      => "/merchants/profile/{$m->id}",
+                        'type'     => 'merchant',
+                    ]),
+                ];
+            }
         }
 
         // -----------------------------------------------
-        // LOANS — when loans table exists
+        // LOANS — search by application id / merchant name
         // -----------------------------------------------
         if ($categories === 'all' || str_contains($categories, 'loans')) {
-            $results['loans'] = [
-                'label' => 'Loans',
-                'count' => 0,
-                'items' => [], // populate when loan tables exist
-            ];
+            $loans = LoanApplication::query()
+                ->with('merchant:id,business_name')
+                ->where(function ($q) use ($query) {
+                    $q->whereRaw('CAST(id AS TEXT) ILIKE ?', ["%{$query}%"])
+                        ->orWhereHas('merchant', function ($mq) use ($query) {
+                            $mq->where('business_name', 'ILIKE', "%{$query}%");
+                        });
+                })
+                ->limit(5)
+                ->get(['id', 'merchant_id', 'amount', 'status']);
+
+            if ($loans->isNotEmpty()) {
+                $results['loans'] = [
+                    'label' => 'Loans',
+                    'count' => $loans->count(),
+                    'items' => $loans->map(fn ($loan) => [
+                        'id'       => $loan->id,
+                        'label'    => 'LA-' . str_pad((string) $loan->id, 4, '0', STR_PAD_LEFT),
+                        'sublabel' => ($loan->merchant?->business_name ?? '—') . ' · ₹' . number_format((float) $loan->amount, 0),
+                        'badge'    => $loan->status,
+                        'url'      => '/loan-application-monitor',
+                        'type'     => 'loan',
+                    ]),
+                ];
+            }
         }
 
         // -----------------------------------------------

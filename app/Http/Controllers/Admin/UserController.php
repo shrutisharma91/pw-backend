@@ -255,17 +255,6 @@ class UserController extends Controller
         $admin = Auth::user();
         $targetUser = User::findOrFail($id);
 
-        $request->validate([
-            'email' => 'required|email',
-        ]);
-
-        if ($admin->email !== $request->email) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Email must match your Super Admin login email.',
-            ], 422);
-        }
-
         DB::table('password_reset_tokens')
             ->where('email', $admin->email)
             ->delete();
