@@ -50,6 +50,10 @@ use App\Http\Controllers\Admin\ManualReviewController;
 use App\Http\Controllers\Admin\AuditTrailController;
 use App\Http\Controllers\Admin\ConsentLogController;
 use App\Http\Controllers\Admin\ComplianceReportController;
+use App\Http\Controllers\Customer\AuthController as CustomerAuthController;
+use App\Http\Controllers\Customer\ProductCatalogController as CustomerProductCatalogController;
+use App\Http\Controllers\Customer\CalculatorController as CustomerCalculatorController;
+use App\Http\Controllers\Customer\LoanController as CustomerLoanController;
 /*
 |--------------------------------------------------------------------------
 | FinZ LMS — Super Admin API Routes
@@ -109,7 +113,7 @@ Route::prefix('v1')->group(function () {
     // Screen 04: Profile Settings
     // Screen 05: Notification Center
     // =========================================================
-    Route::prefix('admin')->middleware(['auth:api', 'mfa.verified'])->group(function () {
+    Route::prefix('admin')->middleware(['auth:api', 'mfa.verified', 'admin.super', 'not.customer'])->group(function () {
 
         // ----- Screen 04: Profile & Personal Settings -----
         Route::prefix('profile')->group(function () {
@@ -479,7 +483,7 @@ Route::prefix('sessions')->group(function () {
     */
 
     Route::prefix('admin')
-        ->middleware(['auth:api', 'mfa.verified', 'throttle:60,1'])
+        ->middleware(['auth:api', 'mfa.verified', 'admin.super', 'not.customer', 'throttle:60,1'])
         ->group(function () {
 
             // ─────────────────────────────────────────────────────────────────────
@@ -643,4 +647,34 @@ Route::prefix('sessions')->group(function () {
             });
 
         }); // end admin middleware group
+
+    // =========================================================
+    // PHASE 2 — Customer Financing Portal (Screens 13–18)
+    // Isolated customer JWT guard — test separately from Super Admin UI
+    // =========================================================
+    Route::prefix('customer')->group(function () {
+        Route::prefix('auth')->group(function () {
+            Route::post('/send-otp', [CustomerAuthController::class, 'sendOtp']);
+            Route::post('/verify-otp', [CustomerAuthController::class, 'verifyOtp']);
+        });
+
+        // Catalog + calculator can be browsed before/after login
+        Route::get('/products', [CustomerProductCatalogController::class, 'index']);
+        Route::post('/calculator/calculate', [CustomerCalculatorController::class, 'calculate']);
+
+        Route::middleware(['auth:customer'])->group(function () {
+            Route::post('/auth/logout', [CustomerAuthController::class, 'logout']);
+
+            Route::post('/loans/eligibility-check', [CustomerLoanController::class, 'eligibilityCheck']);
+            Route::post('/loans/submit', [CustomerLoanController::class, 'submit']);
+            Route::get('/loans/active', [CustomerLoanController::class, 'active']);
+            Route::get('/loans/{id}/schedule', [CustomerLoanController::class, 'schedule'])->whereNumber('id');
+            Route::get('/loans/{id}/soa/download', [CustomerLoanController::class, 'downloadSoa'])->whereNumber('id');
+            Route::get('/loans/{id}/foreclosure-quote', [CustomerLoanController::class, 'foreclosureQuote'])->whereNumber('id');
+            Route::post('/loans/{id}/foreclose', [CustomerLoanController::class, 'foreclose'])->whereNumber('id');
+            Route::get('/loans/{id}/noc/download', [CustomerLoanController::class, 'downloadNoc'])->whereNumber('id');
+        });
+    });
+
+    require __DIR__ . '/lender.php';
 });

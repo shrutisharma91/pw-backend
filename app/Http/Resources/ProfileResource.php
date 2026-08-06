@@ -27,6 +27,8 @@ class ProfileResource extends JsonResource
             'profile_image'            => $profileImageUrl,
             'profile_photo'            => $profileImageUrl,
             'role'                     => $this->role,
+            'lender_id'                => $this->lender_id,
+            'merchant_id'              => $this->merchant_id,
             'roles'                    => $this->when(
                 method_exists($this->resource, 'getRoleNames'),
                 fn () => $this->getRoleNames()
@@ -52,6 +54,7 @@ class ProfileResource extends JsonResource
             return $this->profile_photo;
         }
 
-        return Storage::url($this->profile_photo);
+        // Ensure absolute URL so the SPA (different origin/port) can load it.
+        return url(Storage::url($this->profile_photo));
     }
 }

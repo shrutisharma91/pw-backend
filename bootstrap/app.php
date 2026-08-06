@@ -16,6 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth'         => \App\Http\Middleware\AdminAuth::class,
             'mfa.verified' => \App\Http\Middleware\MFAVerified::class,
             'admin.mfa'    => \App\Http\Middleware\MFAVerified::class,
+            'portal.access' => \App\Http\Middleware\EnsurePortalAccess::class,
+            'admin.super'   => \App\Http\Middleware\EnsureSuperAdminOnly::class,
+            'lender.api'    => \App\Http\Middleware\EnsureLenderApiRole::class,
+            'scope.lender'  => \App\Http\Middleware\ScopeLender::class,
+            'not.customer'  => \App\Http\Middleware\EnsureNotCustomerToken::class,
             'permission'   => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role'         => \Spatie\Permission\Middleware\RoleMiddleware::class,
         ]);

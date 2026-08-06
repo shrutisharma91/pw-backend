@@ -53,6 +53,7 @@ class User extends Authenticatable implements JWTSubject
         'is_active',
         'password_changed_at',
         'merchant_id',           // null for super admin
+        'lender_id',
         'merchant_scope',        // platform, merchant, store
         'store_ids',             // JSON array for store managers
         'password_expiry_policy',
@@ -101,6 +102,7 @@ class User extends Authenticatable implements JWTSubject
             'role'        => $this->role,
             'name'        => $this->name,
             'mfa_enabled' => $this->mfa_enabled,
+            'lender_id'   => $this->lender_id,
         ];
     }
 
@@ -148,6 +150,11 @@ class User extends Authenticatable implements JWTSubject
     public function merchant()
     {
         return $this->belongsTo(Merchant::class);
+    }
+
+    public function lender()
+    {
+        return $this->belongsTo(Lender::class);
     }
 
     public function sessions()

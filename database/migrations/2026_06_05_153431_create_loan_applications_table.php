@@ -14,11 +14,12 @@ return new class extends Migration
         Schema::create('loan_applications', function (Blueprint $table) {
             $table->id();
             $table->foreignId('customer_id')->constrained('customers');
-            $table->foreignId('merchant_id')->constrained('merchants');
-            $table->foreignId('store_id')->constrained('stores');
-            $table->foreignId('lender_id')->constrained('lenders');
+            // Nullable until Phase 2 wizard completes (merchant/store/lender selected)
+            $table->foreignId('merchant_id')->nullable()->constrained('merchants')->nullOnDelete();
+            $table->foreignId('store_id')->nullable()->constrained('stores')->nullOnDelete();
+            $table->foreignId('lender_id')->nullable()->constrained('lenders')->nullOnDelete();
             $table->decimal('amount', 10, 2);
-            $table->foreignId('emi_type_id')->constrained('emi_types');
+            $table->foreignId('emi_type_id')->nullable()->constrained('emi_types')->nullOnDelete();
             $table->string('status')->default('Initiated'); // Initiated, KYC, Bureau, Approved, eSign, eNACH, Disbursed, Rejected, Cancelled
             $table->boolean('sla_breached')->default(false);
             $table->timestamps();

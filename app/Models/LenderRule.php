@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Modules\Lender\Models\Concerns\BelongsToLender;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class LenderRule extends Model
 {
-    use HasFactory;
+    use BelongsToLender, HasFactory;
 
     protected $fillable = [
         'name',

@@ -23,3 +23,8 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 .env
+# Local test DB only — never commit (architecture uses migrations/seeders)
+/database/*.sqlite
+/database/*.sqlite-journal
+/database/*.sqlite-shm
+/database/*.sqlite-wal

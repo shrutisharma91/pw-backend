@@ -76,6 +76,17 @@ return [
             'support.tickets.reassign',
             'support.tickets.bulk',
         ],
+        'LenderPortal'    => [
+            'lender.dashboard.view',
+            'lender.applications.view',
+            'lender.underwriting.decide',
+            'lender.disbursals.release',
+            'lender.rules.manage',
+            'lender.collections.manage',
+            'lender.sla.view',
+            'lender.api_config.manage',
+            'disbursal_authorizer',
+        ],
     ],
 
 ];

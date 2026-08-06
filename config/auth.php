@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Models\Customer;
 
 return [
 
@@ -52,6 +53,12 @@ return [
             'driver' => 'jwt',
             'provider' => 'users',
         ],
+
+        // Phase 2 — Customer Financing Portal (mobile OTP JWT)
+        'customer' => [
+            'driver' => 'jwt',
+            'provider' => 'customers',
+        ],
     ],
 
     /*
@@ -77,10 +84,10 @@ return [
             'model' => env('AUTH_MODEL', User::class),
         ],
 
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
+        'customers' => [
+            'driver' => 'eloquent',
+            'model' => Customer::class,
+        ],
     ],
 
     /*

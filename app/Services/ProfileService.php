@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\CloudinaryUploadException;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
@@ -43,10 +44,16 @@ class ProfileService
         if ($profilePhoto) {
             $this->deleteExistingProfilePhoto($user);
 
-            $upload = $this->cloudinaryService->uploadProfileImage($profilePhoto);
-
-            $updateData['profile_photo'] = $upload['secure_url'];
-            $updateData['public_id']     = $upload['public_id'];
+            try {
+                $upload = $this->cloudinaryService->uploadProfileImage($profilePhoto);
+                $updateData['profile_photo'] = $upload['secure_url'];
+                $updateData['public_id']     = $upload['public_id'];
+            } catch (CloudinaryUploadException $e) {
+                // Local/dev fallback when Cloudinary is misconfigured or unavailable.
+                $path = $profilePhoto->store('profile-images', 'public');
+                $updateData['profile_photo'] = $path;
+                $updateData['public_id'] = null;
+            }
         }
 
         if ($updateData !== []) {

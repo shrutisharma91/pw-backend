@@ -114,7 +114,9 @@ class ProfileController extends Controller
     public function update(UpdateProfileRequest $request): JsonResponse
     {
         try {
-            $profileImage = $request->file('profile_image') ?? $request->file('profile_photo');
+            $profileImage = $request->file('profile_image')
+                ?? $request->file('profile_photo')
+                ?? $request->file('photo');
 
             $user = $this->profileService->updateProfile(
                 $request->user(),

@@ -42,6 +42,7 @@ class UpdateProfileRequest extends FormRequest
             'mobile'                           => 'sometimes|string|size:10|regex:/^[0-9]{10}$/|unique:users,mobile,' . $userId,
             'profile_image'                    => $imageRules,
             'profile_photo'                    => $imageRules,
+            'photo'                            => $imageRules,
             'theme'                            => 'sometimes|in:light,dark',
             'timezone'                         => 'sometimes|timezone:all',
             'notification_preferences'         => 'sometimes|array',

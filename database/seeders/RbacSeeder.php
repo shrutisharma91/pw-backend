@@ -35,6 +35,12 @@ class RbacSeeder extends Seeder
 
             if (in_array($roleName, ['superadmin', 'super_admin'], true)) {
                 $role->syncPermissions(Permission::where('guard_name', $guard)->get());
+            } elseif ($roleName === 'lender_ops') {
+                $role->syncPermissions(
+                    Permission::where('guard_name', $guard)
+                        ->whereIn('name', RbacCatalog::modules()['LenderPortal'] ?? [])
+                        ->get()
+                );
             }
         }
 

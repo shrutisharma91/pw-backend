@@ -19,6 +19,8 @@ class DatabaseSeeder extends Seeder
             RbacSeeder::class,
             UserSeeder::class,
             DemoDataSeeder::class,
+            CustomerPortalSeeder::class,
+            Phase3LenderOpsSeeder::class,
             Phase13Seeder::class,
             Phase14Seeder::class,
         ]);
