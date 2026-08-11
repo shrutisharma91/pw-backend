@@ -677,4 +677,6 @@ Route::prefix('sessions')->group(function () {
     });
 
     require __DIR__ . '/lender.php';
+    require __DIR__ . '/merchant.php';
+    require __DIR__ . '/pos.php';
 });

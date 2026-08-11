@@ -66,6 +66,20 @@ class DemoDataSeeder extends Seeder
         // Attach Product to Store
         $store->products()->syncWithoutDetaching([$product->id => ['stock_quantity' => 15]]);
 
+        // Create a Store Manager for this store
+        $storeManager = \App\Models\User::firstOrCreate(
+            ['email' => 'store@techsuperstore.com'],
+            [
+                'name' => 'Tech Store Manager',
+                'password' => \Illuminate\Support\Facades\Hash::make('password123'),
+                'email_verified_at' => now(),
+                'role' => 'store_manager',
+                'merchant_id' => $merchant->id,
+                'store_ids' => [(string)$store->id],
+                'is_active' => true,
+            ]
+        );
+
         // Lender
         $lender = \App\Models\Lender::firstOrCreate(
             ['name' => 'FinBank Corp'],
