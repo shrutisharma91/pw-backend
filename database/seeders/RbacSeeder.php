@@ -41,6 +41,16 @@ class RbacSeeder extends Seeder
                         ->whereIn('name', RbacCatalog::modules()['LenderPortal'] ?? [])
                         ->get()
                 );
+            } elseif ($roleName === 'sales_exec') {
+                $role->syncPermissions(
+                    Permission::where('guard_name', $guard)
+                        ->whereIn('name', array_merge(
+                            RbacCatalog::modules()['Authentication'] ?? [],
+                            RbacCatalog::modules()['Profile'] ?? [],
+                            RbacCatalog::modules()['AgentPortal'] ?? [],
+                        ))
+                        ->get()
+                );
             }
         }
 

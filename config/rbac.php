@@ -87,6 +87,13 @@ return [
             'lender.api_config.manage',
             'disbursal_authorizer',
         ],
+        'AgentPortal'     => [
+            'agent.dashboard.view',
+            'agent.merchants.onboard',
+            'agent.checkout.submit',
+            'agent.audits.manage',
+            'agent.incentives.view',
+        ],
     ],
 
 ];

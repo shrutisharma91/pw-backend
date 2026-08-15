@@ -22,6 +22,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'scope.lender'  => \App\Http\Middleware\ScopeLender::class,
             'scope.merchant' => \App\Http\Middleware\ScopeMerchant::class,
             'scope.store'   => \App\Http\Middleware\ScopeStore::class,
+            'agent.api'     => \App\Http\Middleware\EnsureAgentApiRole::class,
+            'scope.agent'   => \App\Http\Middleware\ScopeAgent::class,
             'not.customer'  => \App\Http\Middleware\EnsureNotCustomerToken::class,
             'permission'   => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role'         => \Spatie\Permission\Middleware\RoleMiddleware::class,

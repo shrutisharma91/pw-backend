@@ -13,6 +13,7 @@ class LoanApplication extends Model
         'merchant_id',
         'store_id',
         'lender_id',
+        'sales_exec_id',
         'amount',
         'emi_type_id',
         'product_id',
@@ -36,6 +37,7 @@ class LoanApplication extends Model
     public function merchant() { return $this->belongsTo(Merchant::class); }
     public function store() { return $this->belongsTo(Store::class); }
     public function lender() { return $this->belongsTo(Lender::class); }
+    public function salesExec() { return $this->belongsTo(User::class, 'sales_exec_id'); }
     public function product() { return $this->belongsTo(Product::class); }
     public function timelineEvents() { return $this->hasMany(LoanTimelineEvent::class); }
     public function documents() { return $this->hasMany(LoanDocument::class); }

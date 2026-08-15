@@ -21,6 +21,7 @@ class DatabaseSeeder extends Seeder
             DemoDataSeeder::class,
             CustomerPortalSeeder::class,
             Phase3LenderOpsSeeder::class,
+            Phase6SalesExecSeeder::class,
             Phase13Seeder::class,
             Phase14Seeder::class,
         ]);

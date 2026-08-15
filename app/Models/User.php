@@ -152,6 +152,11 @@ class User extends Authenticatable implements JWTSubject
         return $this->belongsTo(Merchant::class);
     }
 
+    public function assignedMerchants()
+    {
+        return $this->hasMany(Merchant::class, 'sales_exec_id');
+    }
+
     public function lender()
     {
         return $this->belongsTo(Lender::class);
