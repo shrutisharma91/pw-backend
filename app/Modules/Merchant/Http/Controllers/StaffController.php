@@ -11,8 +11,7 @@ class StaffController extends MerchantBaseController
     public function index(Request $request)
     {
         $staff = User::where('merchant_id', $this->scopedMerchantId())
-            ->whereIn('role', ['merchant_admin', 'store_manager'])
-            ->with(['store'])
+            ->whereIn('role', ['merchant_admin', 'store_manager', 'cashier'])
             ->get();
 
         return response()->json([
@@ -26,14 +25,19 @@ class StaffController extends MerchantBaseController
         $validated = $request->validate([
             'name'     => 'required|string|max:255',
             'email'    => 'required|email|unique:users,email',
-            'role'     => 'required|in:merchant_admin,store_manager',
-            'store_id' => 'required_if:role,store_manager|exists:stores,id',
+            'mobile'   => 'nullable|string|size:10',
+            'role'     => 'required|in:merchant_admin,store_manager,cashier',
+            'store_ids'=> 'nullable|array',
             'password' => 'required|string|min:8',
         ]);
 
         $validated['merchant_id'] = $this->scopedMerchantId();
         $validated['password'] = Hash::make($validated['password']);
         $validated['is_active'] = true;
+        
+        if (isset($validated['store_ids']) && count($validated['store_ids']) > 0) {
+            $validated['store_id'] = $validated['store_ids'][0]; // backward compatibility
+        }
 
         $user = User::create($validated);
 
@@ -52,14 +56,32 @@ class StaffController extends MerchantBaseController
         
         $validated = $request->validate([
             'name'     => 'string|max:255',
-            'role'     => 'in:merchant_admin,store_manager',
-            'store_id' => 'required_if:role,store_manager|exists:stores,id',
+            'mobile'   => 'nullable|string|size:10',
+            'role'     => 'in:merchant_admin,store_manager,cashier',
+            'store_ids'=> 'nullable|array',
             'is_active'=> 'boolean',
         ]);
+
+        if (isset($validated['store_ids']) && count($validated['store_ids']) > 0) {
+            $validated['store_id'] = $validated['store_ids'][0]; // backward compatibility
+        }
 
         $user->update($validated);
 
         return response()->json(['success' => true, 'data' => $user]);
+    }
+
+    public function resetPassword(Request $request, $id)
+    {
+        $user = User::where('merchant_id', $this->scopedMerchantId())->findOrFail($id);
+        
+        $validated = $request->validate([
+            'password' => 'required|string|min:8',
+        ]);
+
+        $user->update(['password' => Hash::make($validated['password'])]);
+
+        return response()->json(['success' => true, 'message' => 'Password reset successfully.']);
     }
 
     public function destroy($id)

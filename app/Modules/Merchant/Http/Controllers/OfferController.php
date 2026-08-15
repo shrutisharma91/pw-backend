@@ -9,15 +9,10 @@ class OfferController extends MerchantBaseController
 {
     public function index(Request $request)
     {
-        // Ideally offers are linked to a merchant_id.
-        // If there's no merchant_id on offers table, we assume global offers for now,
-        // or we filter by something else. 
-        // We will assume the offers table has merchant_id for phase 4.
-        $offers = clone Offer::query();
-        
-        // Scope offers to merchant if the column exists
-        if (\Schema::hasColumn('offers', 'merchant_id')) {
-            $offers = $offers->where('merchant_id', $this->scopedMerchantId());
+        $offers = Offer::where('merchant_id', $this->scopedMerchantId());
+
+        if ($request->status) {
+            $offers->where('status', $request->status);
         }
 
         return response()->json([
@@ -30,16 +25,18 @@ class OfferController extends MerchantBaseController
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|string',
+            'type' => 'required|string|in:cashback,discount,subvention_boost,zero_emi',
             'value' => 'required|numeric',
             'start_date' => 'required|date',
-            'end_date' => 'required|date',
+            'end_date' => 'required|date|after:start_date',
+            'target_categories' => 'nullable|array',
+            'target_stores' => 'nullable|array',
+            'budget_limit' => 'nullable|numeric',
         ]);
 
-        if (\Schema::hasColumn('offers', 'merchant_id')) {
-            $validated['merchant_id'] = $this->scopedMerchantId();
-        }
-        $validated['status'] = 'Pending'; // Needs super admin approval
+        $validated['merchant_id'] = $this->scopedMerchantId();
+        $validated['status'] = 'draft'; 
+        $validated['budget_consumed'] = 0;
 
         $offer = Offer::create($validated);
 
@@ -48,26 +45,23 @@ class OfferController extends MerchantBaseController
 
     public function show($id)
     {
-        $offer = clone Offer::query();
-        if (\Schema::hasColumn('offers', 'merchant_id')) {
-            $offer = $offer->where('merchant_id', $this->scopedMerchantId());
-        }
-        return response()->json(['success' => true, 'data' => $offer->findOrFail($id)]);
+        $offer = Offer::where('merchant_id', $this->scopedMerchantId())->findOrFail($id);
+        return response()->json(['success' => true, 'data' => $offer]);
     }
 
     public function update(Request $request, $id)
     {
-        $offerQuery = clone Offer::query();
-        if (\Schema::hasColumn('offers', 'merchant_id')) {
-            $offerQuery = $offerQuery->where('merchant_id', $this->scopedMerchantId());
-        }
-        $offer = $offerQuery->findOrFail($id);
+        $offer = Offer::where('merchant_id', $this->scopedMerchantId())->findOrFail($id);
         
         $validated = $request->validate([
             'name' => 'string|max:255',
-            'type' => 'string',
+            'type' => 'string|in:cashback,discount,subvention_boost,zero_emi',
             'value' => 'numeric',
-            'end_date' => 'date',
+            'end_date' => 'date|after:start_date',
+            'target_categories' => 'nullable|array',
+            'target_stores' => 'nullable|array',
+            'budget_limit' => 'nullable|numeric',
+            'status' => 'string|in:draft,active,inactive,expired',
         ]);
 
         $offer->update($validated);
@@ -77,11 +71,12 @@ class OfferController extends MerchantBaseController
 
     public function destroy($id)
     {
-        $offerQuery = clone Offer::query();
-        if (\Schema::hasColumn('offers', 'merchant_id')) {
-            $offerQuery = $offerQuery->where('merchant_id', $this->scopedMerchantId());
+        $offer = Offer::where('merchant_id', $this->scopedMerchantId())->findOrFail($id);
+        
+        if ($offer->status === 'active') {
+            return response()->json(['success' => false, 'message' => 'Cannot delete an active offer.'], 403);
         }
-        $offer = $offerQuery->findOrFail($id);
+
         $offer->delete();
 
         return response()->json(['success' => true, 'message' => 'Offer deleted.']);

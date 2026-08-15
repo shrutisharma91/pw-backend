@@ -9,23 +9,35 @@ class SubventionController extends MerchantBaseController
 {
     public function index(Request $request)
     {
-        // For subvention matrix, we list EMI types (e.g. Zero Cost, Standard) 
-        // that are active for the platform and potentially specific configurations for this merchant.
-        $emiTypes = EmiType::all();
+        $matrices = \Illuminate\Support\Facades\DB::table('subvention_matrices')
+            ->where('merchant_id', $this->scopedMerchantId())
+            ->get();
 
         return response()->json([
             'success' => true,
-            'data'    => $emiTypes,
+            'data'    => $matrices,
         ]);
     }
 
     public function update(Request $request, $id)
     {
-        // Merchant updates their subvention sharing percentage or toggles subvention
-        // In a real app this would store merchant-specific subvention preferences.
         $validated = $request->validate([
-            'merchant_contribution_pct' => 'required|numeric|min:0|max:100',
+            'merchant_split' => 'required|numeric|min:0|max:100',
+            'lender_split'   => 'required|numeric|min:0|max:100',
         ]);
+
+        if ($validated['merchant_split'] + $validated['lender_split'] !== 100.0) {
+            return response()->json(['success' => false, 'message' => 'Splits must sum to 100'], 422);
+        }
+
+        $matrix = \Illuminate\Support\Facades\DB::table('subvention_matrices')
+            ->where('merchant_id', $this->scopedMerchantId())
+            ->where('id', $id)
+            ->update([
+                'merchant_split' => $validated['merchant_split'],
+                'lender_split' => $validated['lender_split'],
+                'updated_at' => now(),
+            ]);
 
         return response()->json([
             'success' => true, 

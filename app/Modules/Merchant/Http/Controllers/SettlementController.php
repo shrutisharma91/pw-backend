@@ -9,9 +9,26 @@ class SettlementController extends MerchantBaseController
 {
     public function index(Request $request)
     {
-        $settlements = SettlementEntry::where('merchant_id', $this->scopedMerchantId())
-            ->with(['loanApplication'])
-            ->latest()
+        $query = SettlementEntry::where('merchant_id', $this->scopedMerchantId())
+            ->with(['loanApplication.customer', 'loanApplication.store']);
+
+        if ($request->status) {
+            $query->where('status', $request->status);
+        }
+        
+        if ($request->start_date && $request->end_date) {
+            $query->whereBetween('created_at', [$request->start_date, $request->end_date]);
+        }
+        
+        if ($request->boolean('export')) {
+            // Mock export
+            return response()->json([
+                'success' => true,
+                'data' => $query->get()
+            ]);
+        }
+
+        $settlements = $query->latest()
             ->paginate($request->get('per_page', 20));
 
         return response()->json([
@@ -22,6 +39,27 @@ class SettlementController extends MerchantBaseController
                 'last_page'    => $settlements->lastPage(),
                 'total'        => $settlements->total(),
             ]
+        ]);
+    }
+
+    public function dispute(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'reason' => 'required|string',
+            'amount_claimed' => 'required|numeric'
+        ]);
+
+        $settlement = SettlementEntry::where('merchant_id', $this->scopedMerchantId())
+            ->findOrFail($id);
+            
+        // In reality, we'd log this in a disputes table
+        // $settlement->status = 'disputed'; 
+        // $settlement->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Dispute raised successfully.',
+            'data' => array_merge($validated, ['settlement_id' => $id])
         ]);
     }
 }

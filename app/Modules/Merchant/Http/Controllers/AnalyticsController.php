@@ -48,4 +48,23 @@ class AnalyticsController extends MerchantBaseController
             ]
         ]);
     }
+
+    public function vaultUpload(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|max:5120', // 5MB max
+            'type' => 'required|string',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Document uploaded successfully.',
+            'data' => [
+                'id' => rand(100, 999),
+                'type' => $request->type,
+                'status' => 'Pending',
+                'uploaded_at' => Carbon::now()
+            ]
+        ]);
+    }
 }

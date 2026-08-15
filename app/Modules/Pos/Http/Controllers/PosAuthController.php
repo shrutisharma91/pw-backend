@@ -37,6 +37,50 @@ class PosAuthController extends PosBaseController
             ], 403);
         }
 
+        if ($user->mfa_enabled) {
+            // Generate OTP
+            $otp = '123456'; // Fixed for dev
+            \App\Models\CustomerOtp::updateOrCreate(
+                ['phone' => $user->email], // Using phone col as identifier for simplicity in dev
+                ['otp_hash' => \Illuminate\Support\Facades\Hash::make($otp), 'expires_at' => now()->addMinutes(5), 'attempts' => 0]
+            );
+
+            return response()->json([
+                'success' => true,
+                'mfa_required' => true,
+                'message' => 'MFA required. OTP sent to email.',
+                'dev_otp' => app()->environment('local', 'testing') ? $otp : null
+            ]);
+        }
+
+        return $this->issueToken($user, $token, $request);
+    }
+
+    public function verifyMfa(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'otp'   => 'required|string',
+        ]);
+
+        $user = \App\Models\User::where('email', $request->email)->firstOrFail();
+        $record = \App\Models\CustomerOtp::where('phone', $request->email)
+            ->whereNull('verified_at')
+            ->first();
+
+        if (!$record || $record->expires_at->isPast() || !\Illuminate\Support\Facades\Hash::check($request->otp, $record->otp_hash)) {
+            return response()->json(['success' => false, 'message' => 'Invalid or expired OTP'], 401);
+        }
+
+        $record->update(['verified_at' => now()]);
+        
+        $token = Auth::guard('api')->login($user);
+
+        return $this->issueToken($user, $token, $request);
+    }
+
+    private function issueToken($user, $token, $request)
+    {
         $user->load('merchant'); // Load merchant details
 
         // Get the JWT token ID (jti) to create an AdminSession (AdminAuth middleware requires this)

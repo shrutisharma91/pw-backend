@@ -9,9 +9,23 @@ class StoreController extends MerchantBaseController
 {
     public function index(Request $request)
     {
-        $stores = Store::where('merchant_id', $this->scopedMerchantId())
+        $query = Store::where('merchant_id', $this->scopedMerchantId())
             ->withCount('products')
-            ->get();
+            ->withCount(['posTerminals as active_pos_count' => function ($q) {
+                $q->where('status', 'active');
+            }]);
+
+        if ($request->region) {
+            $query->where('region', $request->region);
+        }
+        if ($request->city) {
+            $query->where('city', $request->city);
+        }
+        if ($request->status) {
+            $query->where('status', $request->status);
+        }
+
+        $stores = $query->get();
 
         return response()->json([
             'success' => true,
@@ -23,7 +37,13 @@ class StoreController extends MerchantBaseController
     {
         $validated = $request->validate([
             'name'       => 'required|string|max:255',
+            'store_code' => 'nullable|string|max:100',
             'address'    => 'required|string',
+            'city'       => 'nullable|string|max:100',
+            'region'     => 'nullable|string|max:100',
+            'pin_code'   => 'nullable|string|max:20',
+            'manager_id' => 'nullable|exists:users,id',
+            'working_hours' => 'nullable|array',
             'status'     => 'string|in:active,inactive',
         ]);
 
@@ -37,7 +57,9 @@ class StoreController extends MerchantBaseController
 
     public function show($id)
     {
-        $store = Store::where('merchant_id', $this->scopedMerchantId())->findOrFail($id);
+        $store = Store::where('merchant_id', $this->scopedMerchantId())
+            ->with('posTerminals')
+            ->findOrFail($id);
         return response()->json(['success' => true, 'data' => $store]);
     }
 
@@ -47,8 +69,15 @@ class StoreController extends MerchantBaseController
         
         $validated = $request->validate([
             'name'       => 'string|max:255',
+            'store_code' => 'nullable|string|max:100',
             'address'    => 'string',
+            'city'       => 'nullable|string|max:100',
+            'region'     => 'nullable|string|max:100',
+            'pin_code'   => 'nullable|string|max:20',
+            'manager_id' => 'nullable|exists:users,id',
+            'working_hours' => 'nullable|array',
             'status'     => 'string|in:active,inactive',
+            'deactivation_reason' => 'nullable|string',
         ]);
 
         $store->update($validated);
@@ -59,6 +88,16 @@ class StoreController extends MerchantBaseController
     public function destroy($id)
     {
         $store = Store::where('merchant_id', $this->scopedMerchantId())->findOrFail($id);
+        
+        // Instead of hard delete, maybe deactivate? For now keep delete as requested, but we have deactivate with reason
+        if (request()->has('deactivation_reason')) {
+            $store->update([
+                'status' => 'inactive',
+                'deactivation_reason' => request()->deactivation_reason
+            ]);
+            return response()->json(['success' => true, 'message' => 'Store deactivated.']);
+        }
+
         $store->delete();
 
         return response()->json(['success' => true, 'message' => 'Store deleted.']);

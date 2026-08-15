@@ -16,9 +16,9 @@ use App\Modules\Pos\Http\Controllers\PosCatalogController;
 */
 
 Route::prefix('pos')->group(function () {
-    
-    // Auth for Store Managers
+    // Phase 5 Screen 38 — Dedicated POS Login
     Route::post('/login', [PosAuthController::class, 'login']);
+    Route::post('/verify-mfa', [PosAuthController::class, 'verifyMfa']);
 
     Route::middleware(['auth:api', 'scope.store'])->group(function () {
         Route::post('/logout', [PosAuthController::class, 'logout']);
@@ -46,6 +46,7 @@ Route::prefix('pos')->group(function () {
         Route::post('/staff/{id}/toggle', [\App\Modules\Pos\Http\Controllers\PosStaffController::class, 'toggleActive']);
 
         // QR Standee (Screen 42)
-        Route::get('/qr', [\App\Modules\Pos\Http\Controllers\PosQrController::class, 'show']);
+        Route::get('/qr', [PosQrController::class, 'show']);
+        Route::get('/qr/download-pdf', [PosQrController::class, 'downloadPdf']);
     });
 });

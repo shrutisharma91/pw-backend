@@ -25,9 +25,19 @@ class PosQrController extends PosBaseController
                 'store_id' => $storeId,
                 'merchant_id' => $merchantId,
                 'qr_url' => $customerApplyUrl,
-                // In a real app we might return a base64 PNG of a generated QR code, 
-                // but for React it's easier to generate the QR SVG on the frontend using the URL.
+                'pdf_download_url' => url("/api/v1/pos/qr/download-pdf")
             ]
+        ]);
+    }
+
+    public function downloadPdf(Request $request)
+    {
+        // Mock PDF generation for QR Standee
+        // Normally this would use dompdf or snappy to render a view with the QR code and return a download response
+        return response()->json([
+            'success' => true,
+            'message' => 'PDF generated.',
+            'download_link' => 'https://example.com/dummy-qr-standee.pdf'
         ]);
     }
 }

@@ -23,7 +23,7 @@ class DashboardController extends MerchantBaseController
 
         $salesToday = (clone $loansQuery)
             ->whereDate('created_at', $today)
-            ->whereIn('status', ['Approved', 'Disbursed', 'eNACH', 'eSign'])
+            ->whereIn('status', ['Approved', 'Disbursed', 'eNACH', 'eSign', 'Active'])
             ->sum('amount');
 
         $approvedCount = (clone $loansQuery)
@@ -35,13 +35,45 @@ class DashboardController extends MerchantBaseController
             ->where('status', 'active')
             ->count();
 
+        // Net Settlement Pending (Mock/Simplified logic for Phase 4)
+        $netSettlementPending = (clone $loansQuery)
+            ->whereIn('status', ['Approved', 'Disbursed', 'eNACH', 'eSign', 'Active'])
+            ->sum('amount') * 0.1; // Placeholder for unpaid settlement 
+
+        // Sales Trend (7 days)
+        $salesTrend = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = Carbon::today()->subDays($i);
+            $amount = (clone $loansQuery)
+                ->whereDate('created_at', $date)
+                ->whereIn('status', ['Approved', 'Disbursed', 'eNACH', 'eSign', 'Active'])
+                ->sum('amount');
+            $salesTrend[] = [
+                'date' => $date->format('Y-m-d'),
+                'amount' => $amount
+            ];
+        }
+
+        // Top Stores
+        $topStores = \Illuminate\Support\Facades\DB::table('loan_applications')
+            ->join('stores', 'loan_applications.store_id', '=', 'stores.id')
+            ->where('loan_applications.merchant_id', $merchantId)
+            ->select('stores.name', \Illuminate\Support\Facades\DB::raw('SUM(loan_applications.amount) as total_sales'))
+            ->groupBy('stores.id', 'stores.name')
+            ->orderByDesc('total_sales')
+            ->limit(5)
+            ->get();
+
         return response()->json([
             'success' => true,
             'kpis' => [
                 'sales_today' => $salesToday,
                 'approved_loans' => $approvedCount,
                 'active_stores' => $activeStores,
+                'net_settlement_pending' => $netSettlementPending,
             ],
+            'sales_trend' => $salesTrend,
+            'top_stores' => $topStores,
             'recent_loans' => (clone $loansQuery)->latest()->take(5)->get(),
         ]);
     }

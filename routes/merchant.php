@@ -25,6 +25,7 @@ use App\Modules\Merchant\Http\Controllers\AnalyticsController;
 Route::prefix('merchant')->group(function () {
     // Dedicated login for merchants
     Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::post('/auth/verify-mfa', [AuthController::class, 'verifyMfa']);
 
     // Protected Merchant Routes
     Route::middleware(['auth:api', 'scope.merchant'])->group(function () {
@@ -52,12 +53,15 @@ Route::prefix('merchant')->group(function () {
 
         // Disbursal Settlement Ledger (Screen 35)
         Route::get('settlements', [SettlementController::class, 'index']);
+        Route::post('settlements/{id}/dispute', [SettlementController::class, 'dispute']);
 
         // Store User & Staff Management (Screen 36)
+        Route::post('staff/{id}/reset-password', [StaffController::class, 'resetPassword']);
         Route::apiResource('staff', StaffController::class);
 
         // Merchant Analytics & Vault (Screen 37)
         Route::get('analytics/sales', [AnalyticsController::class, 'sales']);
         Route::get('analytics/vault', [AnalyticsController::class, 'vault']);
+        Route::post('analytics/vault/upload', [AnalyticsController::class, 'vaultUpload']);
     });
 });
