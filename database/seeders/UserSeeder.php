@@ -5,12 +5,12 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // Create test admin user
         $admin = User::updateOrCreate(
             ['email' => 'finzwork10@gmail.com'],
             [
@@ -22,49 +22,8 @@ class UserSeeder extends Seeder
             ]
         );
 
-        if (\Spatie\Permission\Models\Role::where('name', 'superadmin')->exists()) {
+        if (Role::where('name', 'superadmin')->exists()) {
             $admin->syncRoles(['superadmin']);
         }
-
-        $salesExec = User::updateOrCreate(
-            ['email' => 'sales.exec@example.com'],
-            [
-                'name' => 'Sales Executive',
-                'password' => Hash::make('New@password123'),
-                'email_verified_at' => now(),
-                'role' => 'sales_exec',
-                'is_active' => true,
-            ]
-        );
-
-        if (\Spatie\Permission\Models\Role::where('name', 'sales_exec')->exists()) {
-            $salesExec->syncRoles(['sales_exec']);
-        }
-
-        $priya = User::updateOrCreate(
-            ['email' => 'priya.shah@finz.test'],
-            [
-                'name' => 'Priya Shah',
-                'password' => Hash::make('New@password123'),
-                'email_verified_at' => now(),
-                'role' => 'sales_exec',
-                'mobile' => '9876511111',
-                'is_active' => true,
-            ]
-        );
-
-        if (\Spatie\Permission\Models\Role::where('name', 'sales_exec')->exists()) {
-            $priya->syncRoles(['sales_exec']);
-        }
-
-        // Create another test user
-        User::firstOrCreate(
-            ['email' => 'user@example.com'],
-            [
-                'name' => 'Test User',
-                'password' => Hash::make('password123'),
-                'email_verified_at' => now(),
-            ]
-        );
     }
 }
