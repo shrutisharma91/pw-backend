@@ -303,7 +303,7 @@ class Phase13Seeder extends Seeder
                         'variant'    => $variant,
                         'entity_id'  => $i,
                         'converted'  => $i % 5 === 0,
-                        'event_at'   => now()->subHours(rand(1, 72)),
+                        'event_at'   => now()->subHours($i),
                     ];
                 }
             }
@@ -311,7 +311,7 @@ class Phase13Seeder extends Seeder
         }
 
         // Audit trail for feature flag endpoints
-        if (! DB::table('audit_logs')->where('payload->message', 'like', '%new_checkout_flow%')->exists()) {
+        if (! DB::table('audit_logs')->where('payload', 'like', '%new_checkout_flow%')->exists()) {
             DB::table('audit_logs')->insert([
                 'user_id'    => $adminId,
                 'action'     => 'activity_log',
@@ -343,7 +343,8 @@ class Phase13Seeder extends Seeder
             );
         }
 
-        if (! DB::table('audit_logs')->where('payload->message', 'like', 'System parameter updated%')->exists()) {
+        if (! DB::table('audit_logs')->where('payload', 'like', 'System parameter updated%')->exists()
+            && ! DB::table('audit_logs')->where('payload', 'like', '%otp_expiry_minutes%')->exists()) {
             DB::table('audit_logs')->insert([
                 'user_id'    => $adminId,
                 'action'     => 'activity_log',

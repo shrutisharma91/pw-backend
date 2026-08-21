@@ -29,6 +29,19 @@ class NotificationTemplate extends Model
         'approved_at' => 'datetime',
     ];
 
+    protected $appends = ['body'];
+
+    public function getBodyAttribute(): ?string
+    {
+        if (array_key_exists('body', $this->attributes) && $this->attributes['body']) {
+            return $this->attributes['body'];
+        }
+
+        return $this->relationLoaded('currentVersion')
+            ? $this->currentVersion?->body
+            : $this->currentVersion()?->first()?->body;
+    }
+
     public function versions(): HasMany
     {
         return $this->hasMany(NotificationTemplateVersion::class, 'template_id');

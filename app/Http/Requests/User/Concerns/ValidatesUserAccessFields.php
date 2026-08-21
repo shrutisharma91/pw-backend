@@ -3,6 +3,7 @@
 namespace App\Http\Requests\User\Concerns;
 
 use App\Models\Store;
+use App\Support\UiCompat;
 use App\Support\UserAccessRules;
 use Illuminate\Validation\Validator;
 
@@ -35,6 +36,38 @@ trait ValidatesUserAccessFields
             'activation_date'           => 'nullable|date',
             'deactivation_date'         => 'nullable|date|after_or_equal:activation_date',
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $merge = [];
+
+        if ($this->has('role')) {
+            $merge['role'] = UiCompat::normalizeRole($this->input('role'));
+        }
+
+        $aliases = [
+            'forceMfa' => 'force_mfa',
+            'passwordExpiryPolicy' => 'password_expiry_policy',
+            'activationDate' => 'activation_date',
+            'deactivationDate' => 'deactivation_date',
+        ];
+
+        foreach ($aliases as $camel => $snake) {
+            if ($this->exists($camel) && ! $this->exists($snake)) {
+                $merge[$snake] = $this->input($camel);
+            }
+        }
+
+        if (array_key_exists('password_expiry_policy', $merge) || $this->has('password_expiry_policy')) {
+            $merge['password_expiry_policy'] = UiCompat::normalizeExpiry(
+                $merge['password_expiry_policy'] ?? $this->input('password_expiry_policy')
+            );
+        }
+
+        if ($merge !== []) {
+            $this->merge($merge);
+        }
     }
 
     protected function validateUserAccessFields(Validator $validator): void

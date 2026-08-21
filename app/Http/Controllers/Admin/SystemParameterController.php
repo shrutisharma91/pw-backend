@@ -8,6 +8,7 @@ use App\Http\Requests\System\UpdateSystemParametersRequest;
 use App\Http\Resources\DebugLoggingStatusResource;
 use App\Http\Resources\SystemParametersResource;
 use App\Services\SystemParameterService;
+use App\Support\UiCompat;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -35,9 +36,23 @@ class SystemParameterController extends Controller
      */
     public function index()
     {
+        $grouped = $this->systemParameterService->groupedParameters();
+        $flat = [];
+        foreach ($grouped as $group => $rows) {
+            foreach ($rows as $row) {
+                $flat[] = array_merge($row, [
+                    'category'    => UiCompat::parameterCategory($group),
+                    'description' => $row['label'] ?? '',
+                    'group'       => $group,
+                ]);
+            }
+        }
+
         return response()->json([
             'success' => true,
-            'data'    => new SystemParametersResource($this->systemParameterService->groupedParameters()),
+            'data'    => $flat,
+            'parameters' => $flat,
+            'grouped' => $grouped,
         ]);
     }
 

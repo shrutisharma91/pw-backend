@@ -41,6 +41,22 @@ class UserSeeder extends Seeder
             $salesExec->syncRoles(['sales_exec']);
         }
 
+        $priya = User::updateOrCreate(
+            ['email' => 'priya.shah@finz.test'],
+            [
+                'name' => 'Priya Shah',
+                'password' => Hash::make('New@password123'),
+                'email_verified_at' => now(),
+                'role' => 'sales_exec',
+                'mobile' => '9876511111',
+                'is_active' => true,
+            ]
+        );
+
+        if (\Spatie\Permission\Models\Role::where('name', 'sales_exec')->exists()) {
+            $priya->syncRoles(['sales_exec']);
+        }
+
         // Create another test user
         User::firstOrCreate(
             ['email' => 'user@example.com'],

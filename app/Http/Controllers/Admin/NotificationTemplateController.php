@@ -48,6 +48,7 @@ class NotificationTemplateController extends Controller
                 $q2->where('name', 'LIKE', "%{$request->search}%")
                    ->orWhere('template_key', 'LIKE', "%{$request->search}%");
             }))
+            ->with('currentVersion')
             ->withCount('versions')
             ->orderByDesc('updated_at')
             ->paginate(20);

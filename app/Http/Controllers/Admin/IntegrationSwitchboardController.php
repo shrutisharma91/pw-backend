@@ -64,9 +64,22 @@ class IntegrationSwitchboardController extends Controller
             $integration->api_secret = $this->maskSecret($this->decryptCredential($integration->api_secret_enc));
         });
 
+        $flat = $integrations->map(function ($integration) {
+            $health = $integration->health ?? [];
+            $integration->status = ! empty($integration->is_active) ? ($health['status'] ?? 'live') : 'inactive';
+            $integration->last_health_check = $health['last_checked_at'] ?? $health['last_success_at'] ?? null;
+            $integration->last_sync = $health['last_checked_at'] ?? null;
+            $integration->api_calls = $health['response_time_ms'] ?? null;
+            $integration->base_url = $integration->base_url ?? $integration->api_base_url ?? null;
+
+            return $integration;
+        })->values();
+
         return response()->json([
             'success' => true,
-            'data'    => $integrations->groupBy('category'),
+            'data'    => $flat,
+            'integrations' => $flat,
+            'by_category' => $integrations->groupBy('category'),
             'catalog' => self::INTEGRATION_CATALOG,
         ]);
     }

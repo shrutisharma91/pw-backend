@@ -175,40 +175,50 @@ class DashboardController extends Controller
       ];
     }
 
+    $counts = [
+      'pending_merchant_approvals' => $pendingMerchants,
+      'sla_breaches'               => $slaBreaches,
+      'fraud_flags'                => $fraudFlags,
+      'pending_offers'             => $pendingOffers,
+    ];
+
     return response()->json([
       'success' => true,
       'items'   => $items,
-      'data'    => [
-        'pending_merchant_approvals' => $pendingMerchants,
-        'sla_breaches'               => $slaBreaches,
-        'fraud_flags'                => $fraudFlags,
-        'pending_offers'             => $pendingOffers,
-      ],
+      'data'    => $items,
+      'counts'  => $counts,
     ]);
   }
 
   private function buildChartData(int $days): array
   {
+    $start = now()->subDays($days - 1)->startOfDay();
+    $dayExpr = DB::connection()->getDriverName() === 'sqlite'
+      ? "date(created_at)"
+      : "DATE(created_at)";
+
+    $disbursals = Disbursal::query()
+      ->where('status', 'Success')
+      ->where('created_at', '>=', $start)
+      ->selectRaw("{$dayExpr} as day, SUM(amount) as total")
+      ->groupByRaw($dayExpr)
+      ->pluck('total', 'day');
+
+    $applications = LoanApplication::query()
+      ->where('created_at', '>=', $start)
+      ->selectRaw("{$dayExpr} as day, COUNT(*) as total")
+      ->groupByRaw($dayExpr)
+      ->pluck('total', 'day');
+
     $data = [];
-
     for ($i = $days - 1; $i >= 0; $i--) {
-      $date = now()->subDays($i);
-      $dateStr = $date->format('Y-m-d');
-
-      $disbursalAmount = (float) Disbursal::query()
-        ->where('status', 'Success')
-        ->whereDate('created_at', $dateStr)
-        ->sum('amount');
-
-      $applicationCount = LoanApplication::query()
-        ->whereDate('created_at', $dateStr)
-        ->count();
-
+      $dateStr = now()->subDays($i)->format('Y-m-d');
+      $amount = (float) ($disbursals[$dateStr] ?? 0);
       $data[] = [
         'date'         => $dateStr,
-        'disbursals'   => $disbursalAmount,
-        'revenue'      => round($disbursalAmount * 0.02, 2),
-        'applications' => $applicationCount,
+        'disbursals'   => $amount,
+        'revenue'      => round($amount * 0.02, 2),
+        'applications' => (int) ($applications[$dateStr] ?? 0),
       ];
     }
 

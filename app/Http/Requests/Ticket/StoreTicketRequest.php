@@ -45,8 +45,19 @@ class StoreTicketRequest extends FormRequest
             $this->merge(['priority' => null]);
         }
 
-        if ($this->has('category') && $this->input('category') === '') {
-            $this->merge(['category' => null]);
+        $category = $this->input('category');
+        if ($category === '' || $category === 'general') {
+            $this->merge(['category' => TicketRules::DEFAULT_CATEGORY]);
+        } elseif (is_string($category)) {
+            $this->merge(['category' => \App\Support\UiCompat::ticketCategory($category)]);
+        }
+
+        if (! $this->filled('description')) {
+            $this->merge([
+                'description' => $this->input('subject')
+                    ? 'Ticket created from Super Admin: ' . $this->input('subject')
+                    : 'No description provided.',
+            ]);
         }
     }
 

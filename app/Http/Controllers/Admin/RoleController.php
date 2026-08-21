@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\RoleConfig;
 use App\Models\User;
 use App\Support\RbacCatalog;
+use App\Support\UiCompat;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -109,6 +110,9 @@ class RoleController extends Controller
     public function store(Request $request)
     {
         $guard = $this->apiGuard();
+        if ($request->filled('name')) {
+            $request->merge(['name' => UiCompat::slugRoleName($request->name)]);
+        }
 
         $request->validate([
             'name'          => [
@@ -223,6 +227,9 @@ class RoleController extends Controller
     {
         $guard = $this->apiGuard();
         $sourceRole = $this->findApiRole($id);
+
+        $proposed = $request->input('new_name', $sourceRole->name . '_copy');
+        $request->merge(['new_name' => UiCompat::slugRoleName($proposed)]);
 
         $request->validate([
             'new_name' => [
@@ -351,7 +358,8 @@ class RoleController extends Controller
 
         return response()->json([
             'success'     => true,
-            'roles'       => $roles->pluck('name')->values(),
+            'roles'       => $roles->map(fn (Role $role) => $this->formatRole($role, $this->userCountsByRole()))->values(),
+            'role_names'  => $roles->pluck('name')->values(),
             'permissions' => $permissions->map(fn (Permission $p) => [
                 'name'   => $p->name,
                 'module' => RbacCatalog::moduleForPermission($p->name),
@@ -367,11 +375,23 @@ class RoleController extends Controller
     {
         $request->validate([
             'permissions'   => 'required|array',
-            'permissions.*' => ['string', Rule::in(RbacCatalog::allPermissionNames())],
+            'permissions.*' => 'string',
         ]);
 
         $role = $this->findApiRole($id);
         $oldPermissions = $role->permissions->pluck('name')->toArray();
+        $allowed = RbacCatalog::allPermissionNames();
+
+        $uiKeys = [];
+        foreach (['merchants', 'users', 'lenders', 'loans', 'products', 'risk', 'analytics', 'audit'] as $mod) {
+            foreach (['view', 'create', 'edit', 'delete', 'approve', 'reject', 'export'] as $action) {
+                $uiKeys[] = "{$action}_{$mod}";
+            }
+        }
+
+        $keep = array_values(array_diff($oldPermissions, $uiKeys));
+        $incoming = array_values(array_intersect($request->input('permissions', []), $allowed));
+        $final = array_values(array_unique(array_merge($keep, $incoming)));
 
         AuditLog::create([
             'user_id'    => auth()->id(),
@@ -383,12 +403,12 @@ class RoleController extends Controller
                 'role_id'           => $role->id,
                 'role_name'         => $role->name,
                 'old_permissions'   => $oldPermissions,
-                'new_permissions'   => $request->permissions,
+                'new_permissions'   => $final,
             ],
             'created_at' => now(),
         ]);
 
-        $this->syncRolePermissions($role, $request->permissions);
+        $this->syncRolePermissions($role, $final);
 
         Log::info("Permissions updated for role '{$role->name}' by admin " . auth()->id());
 
@@ -397,7 +417,7 @@ class RoleController extends Controller
             'message'         => "Permissions updated for '{$role->name}'.",
             'data'            => $this->formatRole($role->fresh()->load('permissions'), $this->userCountsByRole()),
             'old_permissions' => $oldPermissions,
-            'new_permissions' => $request->permissions,
+            'new_permissions' => $final,
         ]);
     }
 
@@ -437,14 +457,18 @@ class RoleController extends Controller
             ->orderByDesc('id')
             ->first();
 
-        if (!$latestAudit || empty($latestAudit->payload['old_permissions'])) {
+        $payload = is_array($latestAudit?->payload) ? $latestAudit->payload : [];
+
+        // An empty previous set is still a valid snapshot (role had no
+        // permissions before the last save). empty([]) would hide that case.
+        if (!$latestAudit || !array_key_exists('old_permissions', $payload) || !is_array($payload['old_permissions'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'No previous permission snapshot found for this role.',
             ], 404);
         }
 
-        $restoredPermissions = $latestAudit->payload['old_permissions'];
+        $restoredPermissions = $payload['old_permissions'];
 
         AuditLog::create([
             'user_id'    => auth()->id(),

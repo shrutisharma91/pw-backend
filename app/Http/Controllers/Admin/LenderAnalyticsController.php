@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Lender;
 use App\Models\Loan;
+use App\Support\UiCompat;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
@@ -26,15 +27,16 @@ class LenderAnalyticsController extends Controller
      */
     public function index(Request $request)
     {
+        $period   = UiCompat::normalizePeriod($request->period, '30d');
+        $request->merge(['period' => $period]);
+        $lenderId = $request->lender_id;
+
         $request->validate([
             'period'     => 'nullable|in:7d,30d,90d,1y',
             'lender_id'  => 'nullable|exists:lenders,id',
         ]);
 
-        $period   = $request->period ?? '30d';
-        $lenderId = $request->lender_id;
-
-        [$start, $end] = $this->resolveDateRange($period);
+        [$start, $end] = UiCompat::resolvePeriodRange($period);
 
         $cacheKey = "analytics.lender.{$period}.{$lenderId}";
 
@@ -49,6 +51,26 @@ class LenderAnalyticsController extends Controller
                 'npa_threshold_alerts' => $this->getNpaAlerts(),
             ];
         });
+
+        $data['lenders'] = collect($data['scorecards'] ?? [])->map(function ($row) {
+            return array_merge($row, [
+                'total_disbursed' => $row['volume'] ?? $row['total'] ?? 0,
+                'active_borrowers'=> $row['approved'] ?? 0,
+                'avg_loan_size'   => $row['total'] ? round(($row['volume'] ?? 0) / max(1, $row['total']), 2) : 0,
+                'default_rate'    => ($row['npa_rate'] ?? 0) . '%',
+            ]);
+        })->values()->all();
+        $data['product_mix'] = collect($data['category_mix'] ?? [])->map(fn ($row) => [
+            'name'   => $row['product_category'] ?? $row['name'] ?? '—',
+            'count'  => $row['count'] ?? 0,
+            'amount' => $row['volume'] ?? $row['amount'] ?? 0,
+            'growth' => $row['growth'] ?? '',
+        ])->values()->all();
+        $data['kpis'] = [
+            'active_lenders'   => collect($data['scorecards'] ?? [])->where('status', 'active')->count() ?: count($data['scorecards'] ?? []),
+            'total_disbursed'  => collect($data['scorecards'] ?? [])->sum('volume'),
+            'avg_credit_score' => '—',
+        ];
 
         return response()->json(['success' => true, 'data' => $data]);
     }

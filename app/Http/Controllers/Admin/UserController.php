@@ -7,10 +7,11 @@ use App\Http\Requests\User\StoreUserRequest;
 use App\Http\Requests\User\UpdateUserRequest;
 use App\Http\Resources\UserDetailResource;
 use App\Mail\PasswordResetCode;
-use App\Models\User;
 use App\Models\AdminNotification;
 use App\Models\AuditLog;
+use App\Models\User;
 use App\Services\UserService;
+use App\Support\UiCompat;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -59,11 +60,10 @@ class UserController extends Controller
     // ------------------------------------------------------------------
     public function index(Request $request)
     {
-        $query = User::query();
+        $query = User::query()->with('merchant:id,business_name');
 
-        // Filter by role
-        if ($request->filled('role')) {
-            $query->where('role', $request->role);
+        if ($request->filled('role') && $request->role !== 'all') {
+            $query->where('role', UiCompat::normalizeRole($request->role));
         }
 
         // Filter by status
@@ -79,9 +79,11 @@ class UserController extends Controller
         // Search by name, email, mobile
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%')
-                  ->orWhere('email', 'like', '%' . $request->search . '%')
-                  ->orWhere('mobile', 'like', '%' . $request->search . '%');
+                $like = UiCompat::likeOperator();
+                $term = '%' . $request->search . '%';
+                $q->where('name', $like, $term)
+                  ->orWhere('email', $like, $term)
+                  ->orWhere('mobile', $like, $term);
             });
         }
 
@@ -93,23 +95,37 @@ class UserController extends Controller
         $users = $query->orderBy('created_at', 'desc')
                        ->paginate(20);
 
+        $mapped = $users->getCollection()->map(function ($user) {
+            return [
+                'id'            => $user->id,
+                'name'          => $user->name,
+                'email'         => $user->email,
+                'mobile'        => $user->mobile,
+                'role'          => $user->role,
+                'merchant_id'   => $user->merchant_id,
+                'merchant_name' => $user->merchant?->business_name,
+                'merchant'      => $user->merchant ? [
+                    'id'   => $user->merchant->id,
+                    'name' => $user->merchant->business_name,
+                ] : null,
+                'status'        => $user->is_active ? 'active' : 'disabled',
+                'mfa_enabled'   => $user->mfa_enabled,
+                'last_login_at' => $user->last_login_at,
+                'created_at'    => $user->created_at,
+            ];
+        });
+
         return response()->json([
             'success' => true,
-            'data'    => $users->map(function ($user) {
-                return [
-                    'id'            => $user->id,
-                    'name'          => $user->name,
-                    'email'         => $user->email,
-                    'mobile'        => $user->mobile,
-                    'role'          => $user->role,
-                    'merchant_id'   => $user->merchant_id,
-                    'status'        => $user->is_active ? 'active' : 'disabled',
-                    'mfa_enabled'   => $user->mfa_enabled,
-                    'last_login_at' => $user->last_login_at,
-                    'created_at'    => $user->created_at,
-                ];
-            }),
-            'meta' => [
+            'data'    => [
+                'data'         => $mapped->values(),
+                'current_page' => $users->currentPage(),
+                'last_page'    => $users->lastPage(),
+                'total'        => $users->total(),
+                'per_page'     => $users->perPage(),
+            ],
+            'users'   => $mapped->values(),
+            'meta'    => [
                 'total'        => $users->total(),
                 'per_page'     => $users->perPage(),
                 'current_page' => $users->currentPage(),

@@ -5,16 +5,17 @@ namespace App\Modules\Merchant\Http\Controllers;
 use App\Models\LoanApplication;
 use App\Models\Store;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends MerchantBaseController
 {
-    public function index(Request $request)
+    public function index()
     {
         $merchantId = $this->scopedMerchantId();
         $storeId = $this->scopedStoreId();
 
         $today = Carbon::today();
+        $countedStatuses = ['Approved', 'Disbursed', 'eNACH', 'eSign', 'Active'];
 
         $loansQuery = LoanApplication::where('merchant_id', $merchantId);
         if ($storeId) {
@@ -23,7 +24,7 @@ class DashboardController extends MerchantBaseController
 
         $salesToday = (clone $loansQuery)
             ->whereDate('created_at', $today)
-            ->whereIn('status', ['Approved', 'Disbursed', 'eNACH', 'eSign', 'Active'])
+            ->whereIn('status', $countedStatuses)
             ->sum('amount');
 
         $approvedCount = (clone $loansQuery)
@@ -35,30 +36,33 @@ class DashboardController extends MerchantBaseController
             ->where('status', 'active')
             ->count();
 
-        // Net Settlement Pending (Mock/Simplified logic for Phase 4)
         $netSettlementPending = (clone $loansQuery)
-            ->whereIn('status', ['Approved', 'Disbursed', 'eNACH', 'eSign', 'Active'])
-            ->sum('amount') * 0.1; // Placeholder for unpaid settlement 
+            ->whereIn('status', $countedStatuses)
+            ->sum('amount') * 0.1;
 
-        // Sales Trend (7 days)
         $salesTrend = [];
         for ($i = 6; $i >= 0; $i--) {
             $date = Carbon::today()->subDays($i);
             $amount = (clone $loansQuery)
                 ->whereDate('created_at', $date)
-                ->whereIn('status', ['Approved', 'Disbursed', 'eNACH', 'eSign', 'Active'])
+                ->whereIn('status', $countedStatuses)
                 ->sum('amount');
             $salesTrend[] = [
                 'date' => $date->format('Y-m-d'),
-                'amount' => $amount
+                'amount' => $amount,
             ];
         }
 
-        // Top Stores
-        $topStores = \Illuminate\Support\Facades\DB::table('loan_applications')
+        $topStoresQuery = DB::table('loan_applications')
             ->join('stores', 'loan_applications.store_id', '=', 'stores.id')
-            ->where('loan_applications.merchant_id', $merchantId)
-            ->select('stores.name', \Illuminate\Support\Facades\DB::raw('SUM(loan_applications.amount) as total_sales'))
+            ->where('loan_applications.merchant_id', $merchantId);
+
+        if ($storeId) {
+            $topStoresQuery->where('loan_applications.store_id', $storeId);
+        }
+
+        $topStores = $topStoresQuery
+            ->select('stores.name', DB::raw('SUM(loan_applications.amount) as total_sales'))
             ->groupBy('stores.id', 'stores.name')
             ->orderByDesc('total_sales')
             ->limit(5)
@@ -74,7 +78,7 @@ class DashboardController extends MerchantBaseController
             ],
             'sales_trend' => $salesTrend,
             'top_stores' => $topStores,
-            'recent_loans' => (clone $loansQuery)->latest()->take(5)->get(),
+            'recent_loans' => (clone $loansQuery)->with(['customer', 'store'])->latest()->take(5)->get(),
         ]);
     }
 }

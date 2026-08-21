@@ -7,7 +7,7 @@ use App\Models\LoanApplication;
 use App\Models\Merchant;
 use App\Models\User;
 use App\Models\Ticket;
-use App\Models\AdminNotification;
+use App\Support\UiCompat;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -41,6 +41,7 @@ class GlobalSearchController extends Controller
         $query      = $request->q;
         $categories = $request->get('categories', 'all');
         $results    = [];
+        $like       = UiCompat::likeOperator();
 
         // -----------------------------------------------
         // USERS — search by name, email, mobile
@@ -73,12 +74,14 @@ class GlobalSearchController extends Controller
         // -----------------------------------------------
         // MERCHANTS — when merchants table exists
         // -----------------------------------------------
+        $like = UiCompat::likeOperator();
+
         if ($categories === 'all' || str_contains($categories, 'merchants')) {
             $merchants = Merchant::query()
-                ->where(function ($q) use ($query) {
-                    $q->where('business_name', 'ILIKE', "%{$query}%")
-                        ->orWhere('gst_number', 'ILIKE', "%{$query}%")
-                        ->orWhere('region', 'ILIKE', "%{$query}%");
+                ->where(function ($q) use ($query, $like) {
+                    $q->where('business_name', $like, "%{$query}%")
+                        ->orWhere('gst_number', $like, "%{$query}%")
+                        ->orWhere('region', $like, "%{$query}%");
                 })
                 ->limit(5)
                 ->get(['id', 'business_name', 'region', 'status', 'tier']);
@@ -105,10 +108,10 @@ class GlobalSearchController extends Controller
         if ($categories === 'all' || str_contains($categories, 'loans')) {
             $loans = LoanApplication::query()
                 ->with('merchant:id,business_name')
-                ->where(function ($q) use ($query) {
-                    $q->whereRaw('CAST(id AS TEXT) ILIKE ?', ["%{$query}%"])
-                        ->orWhereHas('merchant', function ($mq) use ($query) {
-                            $mq->where('business_name', 'ILIKE', "%{$query}%");
+                ->where(function ($q) use ($query, $like) {
+                    $q->whereRaw('CAST(id AS TEXT) ' . strtoupper($like) . ' ?', ["%{$query}%"])
+                        ->orWhereHas('merchant', function ($mq) use ($query, $like) {
+                            $mq->where('business_name', $like, "%{$query}%");
                         });
                 })
                 ->limit(5)
@@ -135,10 +138,10 @@ class GlobalSearchController extends Controller
         // -----------------------------------------------
         if ($categories === 'all' || str_contains($categories, 'tickets')) {
             $tickets = Ticket::query()
-                ->where(function ($q) use ($query) {
-                    $q->where('ticket_number', 'ILIKE', "%{$query}%")
-                        ->orWhere('subject', 'ILIKE', "%{$query}%")
-                        ->orWhere('reporter_name', 'ILIKE', "%{$query}%");
+                ->where(function ($q) use ($query, $like) {
+                    $q->where('ticket_number', $like, "%{$query}%")
+                        ->orWhere('subject', $like, "%{$query}%")
+                        ->orWhere('reporter_name', $like, "%{$query}%");
                 })
                 ->limit(5)
                 ->get(['id', 'ticket_number', 'subject', 'status', 'priority']);
@@ -152,7 +155,7 @@ class GlobalSearchController extends Controller
                         'label'    => $t->ticket_number,
                         'sublabel' => $t->subject,
                         'badge'    => $t->status,
-                        'url'      => "/tickets/{$t->id}",
+                        'url'      => "/ticket-detail-sla-tracking?id={$t->id}",
                         'type'     => 'ticket',
                     ]),
                 ];
@@ -163,12 +166,31 @@ class GlobalSearchController extends Controller
         $this->saveToRecent(auth()->id(), $query);
 
         $totalResults = collect($results)->sum('count');
+        $items = [];
+
+        foreach ($results as $group) {
+            foreach ($group['items'] as $item) {
+                $items[] = [
+                    'id'       => ($item['type'] ?? 'result') . '-' . $item['id'],
+                    'category' => $group['label'],
+                    'type'     => $item['type'] ?? $group['label'],
+                    'label'    => $item['label'],
+                    'name'     => $item['label'],
+                    'sub'      => $item['sublabel'] ?? '',
+                    'subtitle' => $item['sublabel'] ?? '',
+                    'link'     => $item['url'] ?? '/dashboard',
+                    'url'      => $item['url'] ?? '/dashboard',
+                ];
+            }
+        }
 
         return response()->json([
             'success'       => true,
             'query'         => $query,
             'total_results' => $totalResults,
             'results'       => $results,
+            'items'         => $items,
+            'data'          => $items,
         ]);
     }
 
@@ -180,10 +202,26 @@ class GlobalSearchController extends Controller
     {
         $userId  = auth()->id();
         $recents = \Illuminate\Support\Facades\Cache::get("recent_searches_{$userId}", []);
+        $mapped = collect(array_slice(array_reverse($recents), 0, 10))
+            ->map(function ($row, $index) {
+                $query = is_array($row) ? ($row['query'] ?? '') : (string) $row;
+                return [
+                    'id'       => 'recent-' . $index,
+                    'category' => 'Recent',
+                    'label'    => $query,
+                    'name'     => $query,
+                    'sub'      => 'Recent search',
+                    'link'     => '/global-search?q=' . urlencode($query),
+                    'url'      => '/global-search?q=' . urlencode($query),
+                    'query'    => $query,
+                ];
+            })
+            ->values();
 
         return response()->json([
             'success' => true,
-            'data'    => array_slice(array_reverse($recents), 0, 10), // last 10
+            'data'    => $mapped,
+            'items'   => $mapped,
         ]);
     }
 
@@ -201,10 +239,12 @@ class GlobalSearchController extends Controller
         $userId  = auth()->id();
         $saved   = \Illuminate\Support\Facades\Cache::get("saved_searches_{$userId}", []);
 
+        $queryText = (string) $request->input('query');
+
         $saved[] = [
             'id'         => uniqid(),
-            'query'      => $request->query,
-            'label'      => $request->label ?? $request->query,
+            'query'      => $queryText,
+            'label'      => $request->input('label', $queryText),
             'created_at' => now()->toISOString(),
         ];
 

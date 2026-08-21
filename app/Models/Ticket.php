@@ -51,6 +51,23 @@ class Ticket extends Model
         'reassigned_at'         => 'datetime',
     ];
 
+    protected $appends = ['customer_name', 'assigned_to_name', 'sla_remaining'];
+
+    public function getCustomerNameAttribute(): ?string
+    {
+        return $this->reporter_name;
+    }
+
+    public function getAssignedToNameAttribute(): ?string
+    {
+        return $this->assignee?->name;
+    }
+
+    public function getSlaRemainingAttribute(): ?string
+    {
+        return $this->sla_state;
+    }
+
     public function messages(): HasMany
     {
         return $this->hasMany(TicketMessage::class)->orderBy('created_at');

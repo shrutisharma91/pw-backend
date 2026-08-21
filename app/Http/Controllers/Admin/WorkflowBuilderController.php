@@ -56,6 +56,7 @@ class WorkflowBuilderController extends Controller
         $workflows = Workflow::query()
             ->when($request->status, fn($q) => $q->where('status', $request->status))
             ->when($request->type,   fn($q) => $q->where('workflow_type', $request->type))
+            ->with('activeVersion')
             ->withCount('versions')
             ->orderByDesc('updated_at')
             ->paginate(20);
@@ -80,6 +81,11 @@ class WorkflowBuilderController extends Controller
      */
     public function store(Request $request)
     {
+        if ($request->filled('workflow_type')) {
+            $request->merge(['workflow_type' => \App\Support\UiCompat::workflowType($request->workflow_type)]);
+        }
+        $request->merge(['canvas' => $this->normalizeCanvas($request->input('canvas', []))]);
+
         $validated = $request->validate([
             'name'           => 'required|string|max:255',
             'workflow_type'  => 'required|string|max:100',
@@ -125,6 +131,8 @@ class WorkflowBuilderController extends Controller
     public function update(Request $request, int $id)
     {
         $workflow  = Workflow::findOrFail($id);
+
+        $request->merge(['canvas' => $this->normalizeCanvas($request->input('canvas', []))]);
 
         $validated = $request->validate([
             'name'        => 'sometimes|string|max:255',
@@ -237,6 +245,8 @@ class WorkflowBuilderController extends Controller
                 fn($key, $label) => [
                     'key'    => $key,
                     'label'  => $label,
+                    'id'     => $key,
+                    'name'   => $label,
                     'canvas' => $this->getBuiltInTemplate($key),
                 ],
                 array_keys(self::BUILT_IN_WORKFLOWS),
@@ -246,6 +256,36 @@ class WorkflowBuilderController extends Controller
     }
 
     // ─── Private helpers ──────────────────────────────────────────────────────
+
+    private function normalizeCanvas(?array $canvas): array
+    {
+        $nodes = $canvas['nodes'] ?? [];
+        $edges = $canvas['edges'] ?? [];
+
+        if ($nodes === []) {
+            $nodes = [
+                ['id' => 'n1', 'type' => 'start', 'label' => 'Start', 'x' => 100, 'y' => 50],
+                ['id' => 'n2', 'type' => 'end', 'label' => 'End', 'x' => 100, 'y' => 200],
+            ];
+            $edges = [['from' => 'n1', 'to' => 'n2']];
+        } else {
+            $hasStart = collect($nodes)->contains(fn ($n) => ($n['type'] ?? '') === 'start');
+            $hasEnd = collect($nodes)->contains(fn ($n) => ($n['type'] ?? '') === 'end');
+            if (! $hasStart) {
+                array_unshift($nodes, ['id' => 'start', 'type' => 'start', 'label' => 'Start', 'x' => 100, 'y' => 50]);
+            }
+            if (! $hasEnd) {
+                $nodes[] = ['id' => 'end', 'type' => 'end', 'label' => 'End', 'x' => 100, 'y' => 200];
+            }
+            if ($edges === []) {
+                $startId = collect($nodes)->firstWhere('type', 'start')['id'] ?? 'start';
+                $endId = collect($nodes)->firstWhere('type', 'end')['id'] ?? 'end';
+                $edges = [['from' => $startId, 'to' => $endId]];
+            }
+        }
+
+        return ['nodes' => array_values($nodes), 'edges' => array_values($edges)];
+    }
 
     private function validateCanvas(array $canvas): void
     {

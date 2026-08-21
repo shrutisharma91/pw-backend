@@ -11,6 +11,7 @@ use App\Models\TicketMessage;
 use App\Models\User;
 use App\Services\TicketService;
 use Illuminate\Http\Request;
+use App\Support\UiCompat;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -75,9 +76,9 @@ class TicketController extends Controller
             ->when($request->entity_id, fn ($q) => $q->where('entity_id', $request->entity_id))
             ->when($request->search, function ($q) use ($request) {
                 $q->where(function ($inner) use ($request) {
-                    $inner->where('ticket_number', 'ILIKE', "%{$request->search}%")
-                        ->orWhere('subject', 'ILIKE', "%{$request->search}%")
-                        ->orWhere('reporter_name', 'ILIKE', "%{$request->search}%");
+                    $inner->where('ticket_number', UiCompat::likeOperator(), "%{$request->search}%")
+                        ->orWhere('subject', UiCompat::likeOperator(), "%{$request->search}%")
+                        ->orWhere('reporter_name', UiCompat::likeOperator(), "%{$request->search}%");
                 });
             })
             ->when($request->start_date, fn ($q) => $q->whereDate('created_at', '>=', $request->start_date))
@@ -144,6 +145,10 @@ class TicketController extends Controller
             'success' => true,
             'data'    => [
                 'total_open'    => Ticket::whereNotIn('status', ['resolved', 'closed'])->count(),
+                'open'          => (int) ($byStatus['open'] ?? 0),
+                'in_progress'   => (int) ($byStatus['in_progress'] ?? 0),
+                'resolved'      => (int) ($byStatus['resolved'] ?? 0),
+                'sla_breached'  => (int) ($bySla['breached'] ?? 0),
                 'by_status'     => $byStatus,
                 'by_sla_state'  => $bySla,
                 'by_priority'   => $byPriority,
@@ -159,6 +164,16 @@ class TicketController extends Controller
      */
     public function bulk(Request $request)
     {
+        $escalateTo = $request->input('escalate_to');
+        if ($request->input('action') === 'escalate' && ! is_numeric($escalateTo)) {
+            $request->merge([
+                'escalate_to' => User::query()
+                    ->whereIn('role', ['superadmin', 'super_admin'])
+                    ->where('id', '!=', auth()->id())
+                    ->value('id') ?? auth()->id(),
+            ]);
+        }
+
         $validated = $request->validate([
             'action'       => 'required|in:reassign,close,escalate',
             'ticket_ids'   => 'required|array|min:1',
@@ -308,10 +323,18 @@ class TicketController extends Controller
     {
         $ticket = Ticket::findOrFail($id);
 
+        $escalateTo = $request->input('escalate_to');
+        if (! is_numeric($escalateTo)) {
+            $escalateTo = User::query()
+                ->whereIn('role', ['superadmin', 'super_admin'])
+                ->where('id', '!=', auth()->id())
+                ->value('id') ?? auth()->id();
+        }
+
         $validated = $request->validate([
-            'escalate_to' => 'required|integer|exists:users,id',
             'reason'      => 'required|string|max:500',
         ]);
+        $validated['escalate_to'] = (int) $escalateTo;
 
         $ticket->update([
             'status'       => 'escalated',
@@ -365,6 +388,12 @@ class TicketController extends Controller
     public function resolve(Request $request, int $id)
     {
         $ticket = Ticket::findOrFail($id);
+
+        $category = $request->input('resolution_category', 'other');
+        if (! in_array($category, ['dispute', 'complaint', 'technical', 'billing', 'kyc', 'loan', 'settlement', 'agreement', 'other'], true)) {
+            $category = 'other';
+        }
+        $request->merge(['resolution_category' => $category]);
 
         $validated = $request->validate([
             'resolution_category' => 'required|in:dispute,complaint,technical,billing,kyc,loan,settlement,agreement,other',

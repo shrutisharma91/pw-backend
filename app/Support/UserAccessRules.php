@@ -16,6 +16,8 @@ class UserAccessRules
     ];
 
     public const ROLES = [
+        'superadmin',
+        'super_admin',
         'merchant_admin',
         'store_manager',
         'sales_exec',

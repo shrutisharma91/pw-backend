@@ -98,44 +98,58 @@ class ProductController extends MerchantBaseController
     public function bulkUpload(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:csv,txt'
+            'file' => 'required|file|mimes:csv,txt',
         ]);
 
+        $merchantId = $this->scopedMerchantId();
         $file = $request->file('file');
-        $csvData = file_get_contents($file);
-        $lines = explode(PHP_EOL, $csvData);
-        $header = str_getcsv(array_shift($lines));
-        
-        $imported = 0;
-        foreach ($lines as $line) {
-            if (empty(trim($line))) continue;
-            $row = str_getcsv($line);
-            if (count($header) === count($row)) {
-                $data = array_combine($header, $row);
-                if (isset($data['sku']) && isset($data['name']) && isset($data['price'])) {
-                    Product::updateOrCreate(
-                        [
-                            'merchant_id' => $this->scopedMerchantId(),
-                            'sku' => $data['sku']
-                        ],
-                        [
-                            'name' => $data['name'],
-                            'price' => $data['price'],
-                            'financing_eligibility' => filter_var($data['emi_eligible'] ?? true, FILTER_VALIDATE_BOOLEAN),
-                            'status' => 'active',
-                            'category_id' => 1, // Fallback dummy category for parsing
-                            'brand_id' => 1,    // Fallback dummy brand for parsing
-                        ]
-                    );
-                    $imported++;
-                }
-            }
+        $handle = fopen($file->getRealPath(), 'r');
+        $header = fgetcsv($handle);
+
+        if (!$header) {
+            fclose($handle);
+            return response()->json(['success' => false, 'message' => 'Invalid CSV format'], 400);
         }
 
+        $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', (string) $header[0]);
+        $header = array_map(fn ($col) => strtolower(trim((string) $col)), $header);
+
+        $imported = 0;
+
+        while (($row = fgetcsv($handle)) !== false) {
+            if (count($header) !== count($row)) {
+                continue;
+            }
+
+            $data = array_combine($header, $row);
+            if (empty($data['sku']) || empty($data['name']) || !isset($data['price'])) {
+                continue;
+            }
+
+            $eligible = $data['financing_eligibility'] ?? $data['emi_eligible'] ?? true;
+
+            Product::updateOrCreate(
+                [
+                    'merchant_id' => $merchantId,
+                    'sku' => $data['sku'],
+                ],
+                [
+                    'name' => $data['name'],
+                    'price' => $data['price'],
+                    'status' => $data['status'] ?? 'active',
+                    'financing_eligibility' => filter_var($eligible, FILTER_VALIDATE_BOOLEAN),
+                    'category_id' => !empty($data['category_id']) ? $data['category_id'] : null,
+                    'brand_id' => !empty($data['brand_id']) ? $data['brand_id'] : null,
+                ]
+            );
+            $imported++;
+        }
+        fclose($handle);
+
         return response()->json([
-            'success' => true, 
-            'message' => "Successfully imported $imported products.",
-            'imported_count' => $imported
+            'success' => true,
+            'message' => "Successfully imported {$imported} products.",
+            'imported_count' => $imported,
         ]);
     }
 }

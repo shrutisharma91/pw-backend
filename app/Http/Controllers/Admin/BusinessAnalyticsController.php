@@ -11,6 +11,7 @@ use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use App\Support\UiCompat;
 use Carbon\Carbon;
 
 /**
@@ -30,13 +31,16 @@ class BusinessAnalyticsController extends Controller
      */
     public function index(Request $request)
     {
+        $period = UiCompat::normalizePeriod($request->period, '30d');
+        $request->merge(['period' => $period]);
+
         $request->validate([
             'period'     => 'nullable|in:7d,30d,90d,1y,custom',
             'start_date' => 'nullable|required_if:period,custom|date',
             'end_date'   => 'nullable|required_if:period,custom|date|after_or_equal:start_date',
         ]);
 
-        [$startDate, $endDate] = $this->resolveDateRange($request->period ?? '30d', $request);
+        [$startDate, $endDate] = UiCompat::resolvePeriodRange($request->period ?? '30d', $request->start_date, $request->end_date);
 
         $cacheKey = "analytics.business.{$request->period}.{$startDate}.{$endDate}";
 
@@ -52,6 +56,28 @@ class BusinessAnalyticsController extends Controller
                 'mom_comparison'   => $this->getMoMComparison($endDate),
             ];
         });
+
+        $summary = $data['summary'] ?? [];
+        $trend = $data['disbursal_trend'] ?? [];
+        $merchants = $data['top_merchants'] ?? [];
+
+        $data['kpis'] = [
+            'total_disbursed'   => $summary['disbursal_volume'] ?? 0,
+            'active_borrowers'  => $summary['total_applications'] ?? 0,
+            'avg_loan_size'     => round((float) ($summary['avg_loan_amount'] ?? 0), 2),
+            'default_rate'      => ($summary['npa_rate'] ?? 0) . '%',
+        ];
+        $data['volume_trend'] = collect($trend)->map(fn ($row) => [
+            'label' => $row['date'] ?? $row['label'] ?? '',
+            'value' => (float) ($row['volume'] ?? $row['count'] ?? 0),
+        ])->values()->all();
+        $data['top_lenders'] = collect($merchants)->map(fn ($row) => [
+            'name'   => $row['business_name'] ?? $row['name'] ?? '—',
+            'lender' => $row['business_name'] ?? $row['name'] ?? '—',
+            'loans'  => $row['loans_count'] ?? $row['count'] ?? 0,
+            'amount' => $row['loans_sum_loan_amount'] ?? $row['volume'] ?? 0,
+            'growth' => '',
+        ])->values()->all();
 
         return response()->json([
             'success' => true,
@@ -71,6 +97,11 @@ class BusinessAnalyticsController extends Controller
      */
     public function saveSnapshot(Request $request)
     {
+        $request->merge([
+            'title'  => $request->input('title') ?: ('Board snapshot ' . now()->format('Y-m-d H:i')),
+            'period' => UiCompat::normalizePeriod($request->period, '30d'),
+        ]);
+
         $request->validate([
             'title'  => 'required|string|max:255',
             'period' => 'required|in:7d,30d,90d,1y',

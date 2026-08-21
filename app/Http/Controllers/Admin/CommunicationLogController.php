@@ -120,6 +120,10 @@ class CommunicationLogController extends Controller
 
         [$start, $end] = $this->resolveDateRange($request->period ?? '30d');
 
+        $avgDeliverySql = DB::connection()->getDriverName() === 'pgsql'
+            ? 'ROUND(AVG(EXTRACT(EPOCH FROM (delivered_at - sent_at)))::numeric, 1)'
+            : 'ROUND(AVG((julianday(delivered_at) - julianday(sent_at)) * 86400.0), 1)';
+
         $stats = DB::table('communication_logs')
             ->whereBetween('sent_at', [$start, $end])
             ->select(
@@ -131,7 +135,7 @@ class CommunicationLogController extends Controller
                 DB::raw("SUM(CASE WHEN status = 'clicked' THEN 1 ELSE 0 END) as clicked"),
                 DB::raw("SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed"),
                 DB::raw('SUM(cost) as total_cost'),
-                DB::raw('ROUND(AVG(EXTRACT(EPOCH FROM (delivered_at - sent_at)))::numeric, 1) as avg_delivery_seconds')
+                DB::raw("{$avgDeliverySql} as avg_delivery_seconds")
             )
             ->groupBy('channel', 'provider')
             ->get();
@@ -140,10 +144,16 @@ class CommunicationLogController extends Controller
             ->whereBetween('sent_at', [$start, $end])
             ->select(
                 DB::raw('COUNT(*) as total_sent'),
+                DB::raw("SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered"),
                 DB::raw('SUM(cost) as total_cost'),
-                DB::raw('SUM(CASE WHEN status = \'failed\' THEN 1 ELSE 0 END) as total_failed')
+                DB::raw("SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as total_failed")
             )
             ->first();
+
+        $sent = (int) ($totals->total_sent ?? 0);
+        $delivered = (int) ($totals->delivered ?? 0);
+        $failed = (int) ($totals->total_failed ?? 0);
+        $deliveryRate = $sent > 0 ? round(($delivered / $sent) * 100, 1) . '%' : '0%';
 
         return response()->json([
             'success' => true,
@@ -151,6 +161,10 @@ class CommunicationLogController extends Controller
                 'by_channel_provider' => $stats,
                 'totals'              => $totals,
                 'period'              => ['start' => $start, 'end' => $end],
+                'total_sent'          => $sent,
+                'delivered'           => $delivered,
+                'failed'              => $failed,
+                'delivery_rate'       => $deliveryRate,
             ],
         ]);
     }
@@ -164,9 +178,11 @@ class CommunicationLogController extends Controller
         $request->validate(['period' => 'nullable|in:7d,30d,90d']);
         [$start, $end] = $this->resolveDateRange($request->period ?? '30d');
 
+        $dateExpr = DB::connection()->getDriverName() === 'pgsql' ? 'sent_at::date' : 'date(sent_at)';
+
         $trend = DB::table('communication_logs')
             ->whereBetween('sent_at', [$start, $end])
-            ->selectRaw("sent_at::date as date, channel, COUNT(*) as count, SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed")
+            ->selectRaw("{$dateExpr} as date, channel, COUNT(*) as count, SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed")
             ->groupBy('date', 'channel')
             ->orderBy('date')
             ->get();

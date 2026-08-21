@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Merchant;
 use App\Models\Loan;
+use App\Support\UiCompat;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
@@ -38,6 +39,9 @@ class SalesAnalyticsController extends Controller
      */
     public function index(Request $request)
     {
+        $period = UiCompat::normalizePeriod($request->period, '30d');
+        $request->merge(['period' => $period]);
+
         $request->validate([
             'period'  => 'nullable|in:7d,30d,90d,1y',
             'region'  => 'nullable|string|max:100',
@@ -45,20 +49,59 @@ class SalesAnalyticsController extends Controller
         ]);
 
         $period = $request->period ?? '30d';
-        [$start, $end] = $this->resolveDateRange($period);
+        [$start, $end] = UiCompat::resolvePeriodRange($period);
 
         $cacheKey = "analytics.sales.{$period}.{$request->region}.{$request->exec_id}";
 
         $data = Cache::remember($cacheKey, 300, function () use ($start, $end, $request) {
             return [
                 'leaderboard'           => $this->getLeaderboard($start, $end),
-                'region_heatmap'        => $this->getRegionHeatmap($start, $end),
+                'region_heatmap'        => $this->getRegionHeatmap($start, $end, $request->region),
                 'pipeline_funnel'       => $this->getPipelineFunnel($start, $end, $request->exec_id),
                 'underperforming_alerts'=> $this->getUnderperformingRegions($start, $end),
                 'drill_down'            => $request->region ? $this->getDrillDown($start, $end, $request->region) : null,
                 'exec_detail'           => $request->exec_id ? $this->getExecDetail($start, $end, $request->exec_id) : null,
             ];
         });
+
+        $data['regions'] = collect($data['region_heatmap'] ?? [])->map(function ($row) {
+            $row = (array) $row;
+            $name = $row['region'] ?? $row['name'] ?? '—';
+
+            return [
+                'name'        => $name,
+                'region'      => $name,
+                'city'        => $name,
+                'loans'       => $row['disbursals'] ?? 0,
+                'amount'      => $row['disbursal_volume'] ?? 0,
+                'growth'      => '',
+                'top_product' => '—',
+            ];
+        })->values()->all();
+
+        if ($request->filled('region') && $request->region !== 'all') {
+            $data['regions'] = collect($data['regions'])
+                ->where('name', $request->region)
+                ->values()
+                ->all();
+        }
+
+        $data['top_cities'] = $data['regions'];
+        $data['monthly_trend'] = collect($data['pipeline_funnel'] ?? [])->map(function ($value, $key) {
+            if (is_array($value) || is_object($value)) {
+                $row = (array) $value;
+
+                return [
+                    'label' => $row['stage'] ?? $row['label'] ?? (string) $key,
+                    'value' => (float) ($row['count'] ?? $row['value'] ?? 0),
+                ];
+            }
+
+            return [
+                'label' => (string) $key,
+                'value' => (float) $value,
+            ];
+        })->values()->all();
 
         return response()->json(['success' => true, 'data' => $data]);
     }
@@ -144,10 +187,11 @@ class SalesAnalyticsController extends Controller
             ->orderByDesc('total_volume')
             ->limit(50)
             ->get()
-            ->toArray();
+            ->map(fn ($r) => (array) $r)
+            ->all();
     }
 
-    private function getRegionHeatmap(string $start, string $end): array
+    private function getRegionHeatmap(string $start, string $end, ?string $region = null): array
     {
         return DB::table('loans')
             ->join('merchants', 'loans.merchant_id', '=', 'merchants.id')
@@ -155,6 +199,7 @@ class SalesAnalyticsController extends Controller
             ->where('loans.status', 'disbursed')
             ->whereBetween('loans.disbursed_at', [$start, $end])
             ->whereNotNull('merchants.region')
+            ->when($region && $region !== 'all', fn ($q) => $q->where('merchants.region', $region))
             ->select(
                 'merchants.region',
                 DB::raw('COUNT(DISTINCT merchants.id) as merchants'),
@@ -165,7 +210,8 @@ class SalesAnalyticsController extends Controller
             ->groupBy('merchants.region')
             ->orderByDesc('disbursal_volume')
             ->get()
-            ->toArray();
+            ->map(fn ($r) => (array) $r)
+            ->all();
     }
 
     private function getPipelineFunnel(string $start, string $end, ?int $execId): array
@@ -188,7 +234,7 @@ class SalesAnalyticsController extends Controller
                 ->where('loans.status', 'disbursed')
                 ->whereBetween('loans.disbursed_at', [$start, $end])
                 ->when($execId, fn ($q) => $q->where('merchants.sales_exec_id', $execId))
-                ->distinct('loans.merchant_id')
+                ->distinct()
                 ->count('loans.merchant_id'),
         ];
     }

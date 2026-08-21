@@ -23,6 +23,18 @@ class Workflow extends Model
         'published_at' => 'datetime',
     ];
 
+    protected $appends = ['canvas', 'steps'];
+
+    public function getCanvasAttribute(): ?array
+    {
+        return $this->activeVersion?->canvas;
+    }
+
+    public function getStepsAttribute(): int
+    {
+        return count($this->activeVersion?->canvas['nodes'] ?? []);
+    }
+
     public function versions(): HasMany
     {
         return $this->hasMany(WorkflowVersion::class);

@@ -10,6 +10,7 @@ use App\Jobs\RunOcrJob;
 use App\Jobs\VirusScanJob;
 use App\Services\DocumentService;
 use Illuminate\Http\Request;
+use App\Support\UiCompat;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -53,6 +54,10 @@ class DocumentRepositoryController extends Controller
      */
     public function index(Request $request)
     {
+        if ($request->filled('type')) {
+            $request->merge(['type' => UiCompat::documentType($request->type)]);
+        }
+
         $request->validate([
             'type'        => 'nullable|in:kyc,agreement,invoice,statement,enach,esign,other',
             'entity_type' => 'nullable|in:merchant,customer,store',
@@ -64,11 +69,15 @@ class DocumentRepositoryController extends Controller
         ]);
 
         $docs = Document::query()
-            ->when($request->type,        fn($q) => $q->where('document_type', $request->type))
+            ->when($request->type, function ($q) use ($request) {
+                $type = strtolower((string) $request->type);
+                $map = ['kyc' => 'kyc', 'financial' => 'invoice', 'legal' => 'agreement', 'other' => 'other'];
+                $q->where('document_type', $map[$type] ?? $type);
+            })
             ->when($request->entity_type, fn($q) => $q->where('entity_type', $request->entity_type))
             ->when($request->entity_id,   fn($q) => $q->where('entity_id', $request->entity_id))
             ->when($request->status,      fn($q) => $q->where('status', $request->status))
-            ->when($request->search, fn ($q) => $q->where('ocr_text', 'ILIKE', '%' . $request->search . '%'))
+            ->when($request->search, fn ($q) => $q->where('ocr_text', UiCompat::likeOperator(), '%' . $request->search . '%'))
             ->when($request->start_date,  fn($q) => $q->whereDate('created_at', '>=', $request->start_date))
             ->when($request->end_date,    fn($q) => $q->whereDate('created_at', '<=', $request->end_date))
             ->whereNull('deleted_at')
@@ -202,6 +211,7 @@ class DocumentRepositoryController extends Controller
         return response()->json([
             'success'     => true,
             'share_url'   => $signedUrl,
+            'url'         => $signedUrl,
             'expires_at'  => now()->addMinutes($request->expiry_minutes)->toISOString(),
         ]);
     }
@@ -268,7 +278,10 @@ class DocumentRepositoryController extends Controller
                 'by_type'      => $stats,
                 'quarantined'  => $quarantined,
                 'total_docs'   => Document::whereNull('deleted_at')->count(),
+                'total'        => Document::whereNull('deleted_at')->count(),
                 'total_bytes'  => Document::whereNull('deleted_at')->sum('file_size_bytes'),
+                'total_size'   => Document::whereNull('deleted_at')->sum('file_size_bytes'),
+                'last_upload'  => Document::whereNull('deleted_at')->max('created_at'),
             ],
         ]);
     }

@@ -60,6 +60,9 @@ class SessionController extends Controller
             'data'    => $sessions->map(function ($session) {
                 return [
                     'id'               => $session->id,
+                    'user_id'          => $session->user_id,
+                    'user_name'        => $session->user?->name,
+                    'role'             => $session->user?->role,
                     'user'             => $session->user ? [
                         'id'    => $session->user->id,
                         'name'  => $session->user->name,
@@ -69,10 +72,14 @@ class SessionController extends Controller
                     'ip_address'       => $session->ip_address,
                     'device_type'      => $session->device_type,
                     'device_info'      => $session->device_info,
+                    'device'           => $session->device_type ?? $session->device_info,
+                    'user_agent'       => $session->device_info,
                     'location'         => $session->location,
                     'is_suspicious'    => $session->is_suspicious,
                     'suspicious_reason'=> $session->suspicious_reason,
                     'logged_in_at'     => $session->logged_in_at,
+                    'login_at'         => $session->logged_in_at,
+                    'created_at'       => $session->logged_in_at,
                     'last_active_at'   => $session->last_active_at,
                 ];
             }),

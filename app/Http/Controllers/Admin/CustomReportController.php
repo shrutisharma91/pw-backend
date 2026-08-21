@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Jobs\RunCustomReportJob;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Phase 11 — Screen 48: Custom Report Builder
@@ -40,7 +41,11 @@ class CustomReportController extends Controller
         return response()->json([
             'success' => true,
             'data'    => array_map(
-                fn($cols) => array_map(fn($col) => ['field' => $col, 'label' => ucwords(str_replace('_', ' ', $col))], $cols),
+                fn($cols) => array_map(fn($col) => [
+                    'field' => $col,
+                    'name'  => $col,
+                    'label' => ucwords(str_replace('_', ' ', $col)),
+                ], $cols),
                 self::ALLOWED_MODULES
             ),
             'aggregates'  => self::ALLOWED_AGGREGATES,
@@ -197,18 +202,54 @@ class CustomReportController extends Controller
 
     /**
      * POST /api/admin/reports/custom/{id}/export
-     * Queue an export job (large datasets)
+     * Super Admin UI downloads the file immediately. Large xlsx/pdf still queue.
      */
     public function export(Request $request, int $id)
     {
         $request->validate(['format' => 'required|in:csv,xlsx,pdf,json']);
 
         $report = DB::table('custom_reports')->where('id', $id)->firstOrFail();
-        $def    = json_decode($report->definition, true);
+        $def    = json_decode($report->definition, true) ?? [];
+        $format = $request->input('format');
 
-        dispatch(new RunCustomReportJob($def, $request->format, auth()->id(), $report->name));
+        if (in_array($format, ['xlsx', 'pdf'], true)) {
+            dispatch(new RunCustomReportJob($def, $format, auth()->id(), $report->name));
 
-        return response()->json(['success' => true, 'message' => 'Export queued. Notification sent when ready.']);
+            return response()->json([
+                'success' => true,
+                'message' => 'Export queued. Notification sent when ready.',
+            ]);
+        }
+
+        $config = array_merge($def, [
+            'module' => $def['module'] ?? 'loans',
+            'fields' => $def['fields'] ?? ['id'],
+            'limit'  => min((int) ($def['limit'] ?? 10000), 10000),
+        ]);
+
+        $rows = array_map(fn ($row) => (array) $row, $this->executeReport($config));
+        $safeName = Str::slug($report->name ?: 'report') ?: 'report';
+
+        if ($format === 'json') {
+            return response()->json($rows)
+                ->header('Content-Disposition', "attachment; filename=\"{$safeName}.json\"");
+        }
+
+        return response()->streamDownload(function () use ($rows) {
+            $out = fopen('php://output', 'w');
+            if ($rows === []) {
+                fputcsv($out, ['message']);
+                fputcsv($out, ['No rows']);
+            } else {
+                fputcsv($out, array_keys($rows[0]));
+                foreach ($rows as $row) {
+                    fputcsv($out, array_values($row));
+                }
+            }
+            fclose($out);
+        }, $safeName . '.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     /**

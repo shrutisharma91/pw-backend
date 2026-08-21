@@ -35,6 +35,43 @@ class Document extends Model
         'deleted_at'      => 'datetime',
     ];
 
+    protected $appends = ['file_name', 'name', 'type', 'category', 'size_kb', 'size'];
+
+    public function getFileNameAttribute(): ?string
+    {
+        return $this->original_filename ?? $this->title;
+    }
+
+    public function getNameAttribute(): ?string
+    {
+        return $this->title ?? $this->original_filename;
+    }
+
+    public function getTypeAttribute(): ?string
+    {
+        return $this->document_type;
+    }
+
+    public function getCategoryAttribute(): ?string
+    {
+        return $this->document_type;
+    }
+
+    public function getSizeKbAttribute(): float
+    {
+        return round(((int) $this->file_size_bytes) / 1024, 1);
+    }
+
+    public function getSizeAttribute(): string
+    {
+        $bytes = (int) $this->file_size_bytes;
+        if ($bytes >= 1048576) {
+            return round($bytes / 1048576, 1) . ' MB';
+        }
+
+        return round($bytes / 1024, 1) . ' KB';
+    }
+
     public function versions(): HasMany
     {
         return $this->hasMany(DocumentVersion::class);
